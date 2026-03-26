@@ -304,7 +304,7 @@ const
       ('',''),
       ('',''));
 
-  DefJunction: array [0..11] of String =
+  DefJunction: array [0..13] of String =
     ('',        //0 - ID
      '',        //1 - X
      '',        //2 - Y
@@ -316,9 +316,11 @@ const
      '0',       //8 - Max. Depth
      '0',       //9 - Init. Depth
      '0',       //10 - Surcharge Depth
-     '0');      //11 - Ponded Area
+     '0',       //11 - Ponded Area
+     '0',       //12 - Intermittent Storage volume
+     '0');      //13 - Intermittent Storage Height
 
-  JunctionPropUnits: array [0..11, 0..1] of String =
+  JunctionPropUnits: array [0..13, 0..1] of String =
     ( ('',''),
       ('',''),
       ('',''),
@@ -330,7 +332,9 @@ const
       (' (ft)', ' (m)'),
       (' (ft)', ' (m)'),
       (' (ft)', ' (m)'),
-      (' (ft'+#178+')', ' (m'+#178+')'));
+      (' (ft'+#178+')', ' (m'+#178+')'),
+      (' (ft'+#179+')', ' (m'+#179+')'),
+      (' (ft)', ' (m)'));
 
   DefOutfall: array [0..16] of String =
     ('',         //0 - ID
@@ -735,7 +739,7 @@ var
      (Name:'Infil. Pattern';    Style:esComboEdit; Mask:emNone;      Length:0)
     );
 
-  JunctionProps: array [0..11] of TPropRecord =
+  JunctionProps: array [0..13] of TPropRecord =
     ((Name:'Name';              Style:esEdit;      Mask:emNoSpace;    Length:0),
      (Name:'X-Coordinate';      Style:esEdit;      Mask:emNumber;     Length:0),
      (Name:'Y-Coordinate';      Style:esEdit;      Mask:emNumber;     Length:0),
@@ -747,7 +751,9 @@ var
      (Name:'Max. Depth';        Style:esEdit;      Mask:emPosNumber;  Length:0),
      (Name:'Initial Depth';     Style:esEdit;      Mask:emPosNumber;  Length:0),
      (Name:'Surcharge Depth';   Style:esEdit;      Mask:emPosNumber;  Length:0),
-     (Name:'Ponded Area';       Style:esEdit;      Mask:emPosNumber;  Length:0));
+     (Name:'Ponded Area';       Style:esEdit;      Mask:emPosNumber;  Length:0),
+     (Name:'Interm. Stor. Vol.';   Style:esEdit;   Mask:emPosNumber;  Length:0),
+     (Name:'Interm. Stor. Ht.';    Style:esEdit;   Mask:emPosNumber;  Length:0));
 
   OutfallProps: array[0..16] of TPropRecord =
     ((Name:'Name';              Style:esEdit;      Mask:emNoSpace;   Length:0),
@@ -973,7 +979,7 @@ var
      'Optional monthly pattern that adjusts depression storage',
      'Optional monthly pattern that adjusts infiltration rate');
 
-  JunctionHint: array[0..11] of String =
+  JunctionHint: array[0..13] of String =
     ('User-assigned name of junction',
      'X coordinate of junction on study area map',
      'Y coordinate of junction on study area map',
@@ -986,7 +992,9 @@ var
      'or 0 to use distance from invert to top of highest connecting link)',
      'Initial water depth in junction',
      'Depth in excess of maximum depth before flooding occurs',
-     'Area of ponded water when flooded');
+     'Area of ponded water when flooded',
+     'Volume of intermittent storage at junction',
+     'Height of intermittent storage at junction');
 
   OutfallHint: array[0..16] of String =
     ('User-assigned name of outfall',
