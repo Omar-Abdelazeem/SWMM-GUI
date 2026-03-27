@@ -845,15 +845,58 @@ begin
     end;
 end;
 
-
-procedure ExportOutfalls(S: TStringlist);
+procedure ExportIntermitStorObjects(S: TStringlist);
+//-----------------------------------------------------------------------------
+// For each junction with intermittent storage defined, generates:
+//   1. Two FREE outfalls:
+//      - Outfall{ID}   : receives consumption flow
+//      - L_Outfall{ID} : receives leakage flow
+//   2. One storage node:
+//      - StorageforNode{ID} : functional storage tank
+//        Invert   = junction invert elevation
+//        MaxDepth = JUNCTION_INTERMIT_STOR_HT_INDEX
+//        Area     = JUNCTION_INTERMIT_STOR_VOL_INDEX / JUNCTION_INTERMIT_STOR_HT_INDEX
+//        Shape    = FUNCTIONAL with constant area (coeff1=0, coeff2=0, coeff0=area)
 //-----------------------------------------------------------------------------
 var
-  I, J, K: Integer;
-  Line   : String;
-  N      : TNode;
+  I          : Integer;
+  Line       : String;
+  N          : TNode;
+  JuncID     : String;
+  OutfallID  : String;
+  LkOutfallID: String;
+  StorageID  : String;
+  Invert     : String;
+  StorVol    : Single;
+  StorHt     : Single;
+  StorArea   : Single;
+  HasAny     : Boolean;
 begin
-  if Project.Lists[OUTFALL].Count = 0 then exit;
+  // Check if any junctions have intermittent storage defined
+  HasAny := False;
+  with Project.Lists[JUNCTION] do
+    for I := 0 to Count-1 do
+    begin
+      N := TNode(Objects[I]);
+      if Uutils.GetSingle(N.Data[JUNCTION_INTERMIT_STOR_VOL_INDEX], StorVol) and
+         (StorVol > 0) then
+      begin
+        HasAny := True;
+        break;
+      end;
+      if Uutils.GetSingle(N.Data[JUNCTION_INTERMIT_STOR_HT_INDEX], StorHt) and
+         (StorHt > 0) then
+      begin
+        HasAny := True;
+        break;
+      end;
+    end;
+
+  if not HasAny then exit;
+
+  //------------------------------------------------------------
+  // Write the two outfalls per demand junction
+  //------------------------------------------------------------
   S.Add('');
   S.Add('[OUTFALLS]');
   Line := ';;Name          ' + Tab + 'Elevation ' + Tab + 'Type      ';
@@ -864,6 +907,203 @@ begin
   Line := Line + Tab + '----------------' + Tab + '--------';
   Line := Line + Tab + '----------------';
   S.Add(Line);
+
+  with Project.Lists[JUNCTION] do
+    for I := 0 to Count-1 do
+    begin
+      N := TNode(Objects[I]);
+
+      // Skip junctions with no intermittent storage
+      StorVol := 0;
+      StorHt  := 0;
+      Uutils.GetSingle(N.Data[JUNCTION_INTERMIT_STOR_VOL_INDEX], StorVol);
+      Uutils.GetSingle(N.Data[JUNCTION_INTERMIT_STOR_HT_INDEX],  StorHt);
+      if (StorVol <= 0) and (StorHt <= 0) then continue;
+
+      JuncID    := String(N.ID);
+      Invert    := N.Data[NODE_INVERT_INDEX];
+      OutfallID  := '_IS_OF_' + JuncID;
+      LkOutfallID := '_IS_LOF_' + JuncID;
+
+      // Truncate if over 16 chars
+      if Length(OutfallID) > 16 then
+        OutfallID := '_IS_OF_' + Copy(JuncID, 1, 13);
+      if Length(LkOutfallID) > 16 then
+        LkOutfallID := '_IS_LOF_' + Copy(JuncID, 1, 12);
+
+      // Consumption outfall
+      Line := Format('%-16s', [OutfallID]);
+      Line := Line + Tab + Format('%-10s', [Invert]);
+      Line := Line + Tab + Format('%-10s', ['FREE']);
+      Line := Line + Tab + '                ';
+      Line := Line + Tab + Format('%-8s',  ['NO']);
+      Line := Line + Tab + '                ';
+      S.Add(Line);
+
+      // Leakage outfall
+      Line := Format('%-16s', [LkOutfallID]);
+      Line := Line + Tab + Format('%-10s', [Invert]);
+      Line := Line + Tab + Format('%-10s', ['FREE']);
+      Line := Line + Tab + '                ';
+      Line := Line + Tab + Format('%-8s',  ['NO']);
+      Line := Line + Tab + '                ';
+      S.Add(Line);
+    end;
+
+  //------------------------------------------------------------
+  // Write the storage node per demand junction
+  //------------------------------------------------------------
+  S.Add('');
+  S.Add('[STORAGE]');
+  Line := ';;Name          ' + Tab + 'Elev.   ' + Tab + 'MaxDepth  ';
+  Line := Line + Tab + 'InitDepth ' + Tab + 'Shape     ';
+  Line := Line + Tab + 'Curve Type/Params           ';
+  Line := Line + Tab + 'SurDepth  ' + Tab + 'Fevap   ';
+  S.Add(Line);
+  Line := ';;--------------' + Tab + '--------' + Tab + '----------';
+  Line := Line + Tab + '----------' + Tab + '----------';
+  Line := Line + Tab + '----------------------------';
+  Line := Line + Tab + '----------' + Tab + '--------';
+  S.Add(Line);
+
+  with Project.Lists[JUNCTION] do
+    for I := 0 to Count-1 do
+    begin
+      N := TNode(Objects[I]);
+
+      // Skip junctions with no intermittent storage
+      StorVol := 0;
+      StorHt  := 0;
+      Uutils.GetSingle(N.Data[JUNCTION_INTERMIT_STOR_VOL_INDEX], StorVol);
+      Uutils.GetSingle(N.Data[JUNCTION_INTERMIT_STOR_HT_INDEX],  StorHt);
+      if (StorVol <= 0) and (StorHt <= 0) then continue;
+
+      JuncID    := String(N.ID);
+      Invert    := N.Data[NODE_INVERT_INDEX];
+      StorageID := '_IS_ST_' + JuncID;
+
+      // Truncate if over 16 chars
+      if Length(StorageID) > 16 then
+        StorageID := '_IS_ST_' + Copy(JuncID, 1, 13);
+
+      // Calculate area = volume / height (avoid division by zero)
+      if StorHt > 0 then
+        StorArea := StorVol / StorHt
+      else
+        StorArea := StorVol;  // fallback: treat volume as area if height is 0
+
+      Line := Format('%-16s', [StorageID]);
+      Line := Line + Tab + Format('%-8s',  [Invert]);
+      Line := Line + Tab + Format('%-10s', [N.Data[JUNCTION_INTERMIT_STOR_HT_INDEX]]);
+      Line := Line + Tab + Format('%-10s', ['0']);          // InitDepth
+      Line := Line + Tab + Format('%-10s', ['FUNCTIONAL']); // Shape
+      Line := Line + Tab + Format('%-8s',  ['0']);          // Coeff1 (exponent)
+      Line := Line + Tab + Format('%-8s',  ['0']);          // Coeff2 (power)
+      Line := Line + Tab + Format('%-10s',  [Format('%.4f', [StorArea])]); // Coeff0 = area
+      Line := Line + Tab + Format('%-10s', ['0']);          // SurDepth
+      Line := Line + Tab + Format('%-8s',  ['0']);          // Fevap
+      S.Add(Line);
+    end;
+end;
+
+procedure ExportIntermitStorSection(S: TStringlist);
+//-----------------------------------------------------------------------------
+// Writes a custom [INTERMIT_STORAGE] section to preserve the user-entered
+// storage volume and height for each demand junction across save/load cycles.
+// This section is ignored by the SWMM engine.
+//-----------------------------------------------------------------------------
+var
+  I        : Integer;
+  Line     : String;
+  N        : TNode;
+  StorVol  : Single;
+  StorHt   : Single;
+  HasAny   : Boolean;
+begin
+  HasAny := False;
+  with Project.Lists[JUNCTION] do
+    for I := 0 to Count-1 do
+    begin
+      N := TNode(Objects[I]);
+      StorVol := 0;
+      StorHt  := 0;
+      Uutils.GetSingle(N.Data[JUNCTION_INTERMIT_STOR_VOL_INDEX], StorVol);
+      Uutils.GetSingle(N.Data[JUNCTION_INTERMIT_STOR_HT_INDEX],  StorHt);
+      if (StorVol > 0) or (StorHt > 0) then
+      begin
+        HasAny := True;
+        break;
+      end;
+    end;
+
+  if not HasAny then exit;
+
+  S.Add('');
+  S.Add('[INTERMIT_STORAGE]');
+  S.Add(';;Junction      ' + Tab + 'Volume    ' + Tab + 'Height    ');
+  S.Add(';;--------------' + Tab + '----------' + Tab + '----------');
+
+  with Project.Lists[JUNCTION] do
+    for I := 0 to Count-1 do
+    begin
+      N := TNode(Objects[I]);
+      StorVol := 0;
+      StorHt  := 0;
+      Uutils.GetSingle(N.Data[JUNCTION_INTERMIT_STOR_VOL_INDEX], StorVol);
+      Uutils.GetSingle(N.Data[JUNCTION_INTERMIT_STOR_HT_INDEX],  StorHt);
+      if (StorVol <= 0) and (StorHt <= 0) then continue;
+
+      Line := Format('%-16s', [String(N.ID)]);
+      Line := Line + Tab + Format('%-10s', [N.Data[JUNCTION_INTERMIT_STOR_VOL_INDEX]]);
+      Line := Line + Tab + Format('%-10s', [N.Data[JUNCTION_INTERMIT_STOR_HT_INDEX]]);
+      S.Add(Line);
+    end;
+End;
+
+procedure ExportOutfalls(S: TStringlist);
+//-----------------------------------------------------------------------------
+var
+  I, J, K : Integer;
+  Line    : String;
+  N       : TNode;
+  StorVol : Single;
+  StorHt  : Single;
+  TmpNode : TNode;
+  HasIntermitStor: Boolean;
+begin
+  if Project.Lists[OUTFALL].Count = 0 then exit;
+
+  // Check if ExportIntermitStorObjects already wrote [OUTFALLS] header
+  HasIntermitStor := False;
+  with Project.Lists[JUNCTION] do
+    for I := 0 to Count-1 do
+    begin
+      TmpNode := TNode(Objects[I]);
+      StorVol := 0; StorHt := 0;
+      Uutils.GetSingle(TmpNode.Data[JUNCTION_INTERMIT_STOR_VOL_INDEX], StorVol);
+      Uutils.GetSingle(TmpNode.Data[JUNCTION_INTERMIT_STOR_HT_INDEX],  StorHt);
+      if (StorVol > 0) or (StorHt > 0) then
+      begin
+        HasIntermitStor := True;
+        break;
+      end;
+    end;
+
+  // Only write header if the intermittent storage procedure didn't already
+  if not HasIntermitStor then
+  begin
+    S.Add('');
+    S.Add('[OUTFALLS]');
+    Line := ';;Name          ' + Tab + 'Elevation ' + Tab + 'Type      ';
+    Line := Line + Tab + 'Stage Data      ' + Tab + 'Gated   ';
+    Line := Line + Tab + 'Route To        ';
+    S.Add(Line);
+    Line := ';;--------------' + Tab + '----------' + Tab + '----------';
+    Line := Line + Tab + '----------------' + Tab + '--------';
+    Line := Line + Tab + '----------------';
+    S.Add(Line);
+  end;
+
   with Project.Lists[OUTFALL] do
     for I := 0 to Count-1 do
     begin
@@ -875,13 +1115,11 @@ begin
       Line := Line + Tab + Format('%-10s', [N.Data[OUTFALL_TYPE_INDEX]]);
       K := -1;
       for J := 0 to High(OutfallOptions) do
-      begin
         if SameText(N.Data[OUTFALL_TYPE_INDEX], OutfallOptions[J]) then
         begin
           K := J;
           break;
         end;
-      end;
       case K of
       FIXED_OUTFALL:
         Line := Line + Tab + Format('%-16s', [N.Data[OUTFALL_FIXED_STAGE_INDEX]]);
@@ -959,22 +1197,48 @@ var
   Line : String;
   N    : TNode;
   X    : Single;
+  StorVol : Single;
+  StorHt  : Single;
+  TmpNode : TNode;
+  HasIntermitStor: Boolean;
 begin
   if Project.Lists[STORAGE].Count = 0 then exit;
-  S.Add('');
-  S.Add('[STORAGE]');
-  Line := ';;Name          ' + Tab + 'Elev.   ' + Tab + 'MaxDepth  ';
-  Line := Line + Tab + 'InitDepth ' + Tab + 'Shape     ';
-  Line := Line + Tab + 'Curve Type/Params           ';
-  Line := Line + Tab + 'SurDepth ' + Tab + 'Fevap   ' + Tab + 'Psi     ';
-  Line := Line + Tab + 'Ksat    ' + Tab + 'IMD     ';
-  S.Add(Line);
-  Line := ';;--------------' + Tab + '--------' + Tab + '----------';
-  Line := Line + Tab + '-----------' + Tab + '----------';
-  Line := Line + Tab + '----------------------------';
-  Line := Line + Tab + '---------' + Tab + '--------' + Tab + '        ';
-  Line := Line + Tab + '--------' + Tab + '--------';
-  S.Add(Line);
+
+  // Check if ExportIntermitStorObjects already wrote [STORAGE] header
+  HasIntermitStor := False;
+  with Project.Lists[JUNCTION] do
+    for I := 0 to Count-1 do
+    begin
+      TmpNode := TNode(Objects[I]);
+      StorVol := 0; StorHt := 0;
+      Uutils.GetSingle(TmpNode.Data[JUNCTION_INTERMIT_STOR_VOL_INDEX], StorVol);
+      Uutils.GetSingle(TmpNode.Data[JUNCTION_INTERMIT_STOR_HT_INDEX],  StorHt);
+      if (StorVol > 0) or (StorHt > 0) then
+      begin
+        HasIntermitStor := True;
+        break;
+      end;
+    end;
+
+  // Only write header if the intermittent storage procedure didn't already
+  if not HasIntermitStor then
+  begin
+    S.Add('');
+    S.Add('[STORAGE]');
+    Line := ';;Name          ' + Tab + 'Elev.   ' + Tab + 'MaxDepth  ';
+    Line := Line + Tab + 'InitDepth ' + Tab + 'Shape     ';
+    Line := Line + Tab + 'Curve Type/Params           ';
+    Line := Line + Tab + 'SurDepth ' + Tab + 'Fevap   ' + Tab + 'Psi     ';
+    Line := Line + Tab + 'Ksat    ' + Tab + 'IMD     ';
+    S.Add(Line);
+    Line := ';;--------------' + Tab + '--------' + Tab + '----------';
+    Line := Line + Tab + '-----------' + Tab + '----------';
+    Line := Line + Tab + '----------------------------';
+    Line := Line + Tab + '---------' + Tab + '--------' + Tab + '        ';
+    Line := Line + Tab + '--------' + Tab + '--------';
+    S.Add(Line);
+  end;
+
   with Project.Lists[STORAGE] do
     for I := 0 to Count-1 do
     begin
@@ -2346,6 +2610,7 @@ begin
   // These sections must be exported in the order as shown
   //******************************************************
   ExportJunctions(S);
+  ExportIntermitStorObjects(S);
   ExportOutfalls(S);
   ExportDividers(S);
   ExportStorage(S);
@@ -2380,6 +2645,7 @@ begin
   ExportReport(S);
   ExportAdjustments(S);
   ExportEvents(S);
+  ExportIntermitStorSection(S);
 end;
 
 

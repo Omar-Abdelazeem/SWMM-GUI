@@ -57,7 +57,7 @@ const
   TXT_MORE_ERRORS = ' more errors found in file.';
   TXT_ERROR_REPORT = 'Error Report for File ';
 
-  SectionWords : array[0..57] of PChar =
+  SectionWords : array[0..58] of PChar =
     ('[TITLE',                    //0
      '[OPTION',                   //1
      '[RAINGAGE',                 //2
@@ -115,7 +115,8 @@ const
      '[EVENT',                    //54
      '[STREET',                   //55
      '[INLET_USAGE',              //56
-     '[INLET');                   //57
+     '[INLET',                    //57
+     '[INTERMIT_STORAGE');        //58
 
 var
   FileType     : TFileType;
@@ -899,6 +900,13 @@ begin
   if Ntoks < 3
   then Result := ErrMsg(ITEMS_ERR, '')
   else begin
+    // Skip auto-generated intermittent storage outfalls
+    if (Pos('_IS_OF_',TokList[0]) = 1) or
+       (Pos('_IS_LOF_',TokList[0]) = 1) then
+    begin
+      Result := 0;
+      Exit;
+    end;
     N := 4;
     ID := TokList[0];
     aNode := TNode.Create;
@@ -947,6 +955,12 @@ begin
   if Ntoks < 6
   then Result := ErrMsg(ITEMS_ERR, '')
   else begin
+    // Skip auto-generated intermittent storage nodes
+    if (Pos('_IS_ST_',TokList[0]) = 1) then
+    begin
+      Result := 0;
+      Exit;
+    end;
     ID := TokList[0];
     aNode := TNode.Create;
     NodeList.AddObject(ID, aNode);
@@ -2875,6 +2889,44 @@ begin
   end;
 end;
 
+function ReadIntermitStorageData: Integer;
+//-----------------------------------------------------------------------------
+// Reads intermittent storage data from the custom [INTERMIT_STORAGE] section.
+// Format: JunctionID  Volume  Height
+// Finds the matching junction and restores the two storage property values.
+//-----------------------------------------------------------------------------
+var
+  aNode : TNode;
+  ID    : String;
+begin
+  if Ntoks < 3 then
+  begin
+    Result := ErrMsg(ITEMS_ERR, '');
+    Exit;
+  end;
+
+  ID := TokList[0];
+  aNode := FindNode(ID);
+
+  if aNode = nil then
+  begin
+    // Junction not found - silently skip (it may have been deleted)
+    Result := 0;
+    Exit;
+  end;
+
+  // Only apply to junction nodes
+  if aNode.Ntype <> JUNCTION then
+  begin
+    Result := 0;
+    Exit;
+  end;
+
+  aNode.Data[JUNCTION_INTERMIT_STOR_VOL_INDEX] := TokList[1];
+  aNode.Data[JUNCTION_INTERMIT_STOR_HT_INDEX]  := TokList[2];
+  Result := 0;
+end;
+
 
 function ParseInpLine(S: String): Integer;
 //-----------------------------------------------------------------------------
@@ -2938,6 +2990,7 @@ begin
     55:   Result := ReadStreetData;
     56:   Result := Uinlet.ReadInletUsageData(TokList, Ntoks);
     57:   Result := Uinlet.ReadInletDesignData(TokList, Ntoks);
+    58:   Result := ReadIntermitStorageData;
     else  Result := 0;
   end;
 end;
