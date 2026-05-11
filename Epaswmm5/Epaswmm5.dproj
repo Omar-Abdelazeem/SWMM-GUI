@@ -404,6 +404,7 @@
             <Form>WelcomeForm</Form>
             <FormType>dfm</FormType>
         </DCCReference>
+        <DCCReference Include="UIntermitDisplay.pas"/>
         <None Include="viewvars.txt"/>
         <None Include="objprops.txt"/>
         <BuildConfiguration Include="Base">
@@ -436,11 +437,28 @@
                 <Platform value="Win64">True</Platform>
             </Platforms>
             <Deployment Version="5">
+                <DeployFile LocalName="C:\Projects\Swmm5.2\Swmm5.2.4\GUI\Win32\Epaswmm5.exe" Configuration="Release" Class="ProjectOutput">
+                    <Platform Name="Win32">
+                        <RemoteName>Epaswmm5.exe</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
                 <DeployFile LocalName="Win32\Epaswmm5.exe" Configuration="Release" Class="ProjectOutput"/>
                 <DeployFile LocalName="Win64\Epaswmm5.exe" Configuration="Release" Class="ProjectOutput"/>
                 <DeployFile LocalName="objprops.txt" Configuration="Release" Class="ProjectFile"/>
+                <DeployFile LocalName="objprops.txt" Configuration="Release" Class="ProjectFile">
+                    <Platform Name="Win32">
+                        <RemoteDir>.\</RemoteDir>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
                 <DeployFile LocalName="viewvars.txt" Configuration="Release" Class="ProjectFile"/>
-                <DeployFile LocalName="viewvars.txt" Configuration="Release" Class="ProjectFile"/>
+                <DeployFile LocalName="viewvars.txt" Configuration="Release" Class="ProjectFile">
+                    <Platform Name="Win32">
+                        <RemoteDir>.\</RemoteDir>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
                 <DeployClass Name="AdditionalDebugSymbols">
                     <Platform Name="iOSSimulator">
                         <Operation>1</Operation>

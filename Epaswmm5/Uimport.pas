@@ -901,8 +901,8 @@ begin
   then Result := ErrMsg(ITEMS_ERR, '')
   else begin
     // Skip auto-generated intermittent storage outfalls
-    if (Pos('_IS_OF_',TokList[0]) = 1) or
-       (Pos('_IS_LOF_',TokList[0]) = 1) then
+    if (Pos('_Outfall_',TokList[0]) = 1) or
+       (Pos('_L_Outfall_',TokList[0]) = 1) then
     begin
       Result := 0;
       Exit;
@@ -1273,6 +1273,12 @@ begin
   then Result := ErrMsg(ITEMS_ERR, '')
   else begin
     ID := TokList[0];
+    // Skip auto-generated intermittent storage outlets
+    if (Pos('W_OUTLET_',TokList[0]) = 1) then
+    begin
+      Result := 0;
+      Exit;
+    end;
     aNode1 := FindNode(TokList[1]);
     aNode2 := FindNode(TokList[2]);
     if (aNode1 = nil) then Result := ErrMsg(NODE_ERR, TokList[1])
@@ -2899,7 +2905,7 @@ var
   aNode : TNode;
   ID    : String;
 begin
-  if Ntoks < 3 then
+  if Ntoks < 8 then
   begin
     Result := ErrMsg(ITEMS_ERR, '');
     Exit;
@@ -2922,8 +2928,14 @@ begin
     Exit;
   end;
 
-  aNode.Data[JUNCTION_INTERMIT_STOR_VOL_INDEX] := TokList[1];
-  aNode.Data[JUNCTION_INTERMIT_STOR_HT_INDEX]  := TokList[2];
+  aNode.Data[JUNCTION_INTERMITTENT_TOGGLE_INDEX] := 'YES';
+  aNode.Data[JUNCTION_INTERMIT_WITHDRAWAL_MIN_PRESSURE_INDEX] := TokList[1];
+  aNode.Data[JUNCTION_INTERMIT_WITHDRAWAL_EXPONENT_INDEX]  := TokList[2];
+  aNode.Data[JUNCTION_INTERMIT_WITHDRAWAL_DESIRED_PRESSURE_INDEX]  := TokList[3];
+  aNode.Data[JUNCTION_INTERMIT_WITHDRAWAL_DESIRED_RATE_INDEX]  := TokList[4];
+  aNode.Data[JUNCTION_INTERMIT_STOR_AREA_INDEX] := TokList[5];
+  aNode.Data[JUNCTION_INTERMIT_STOR_HT_INDEX]  := TokList[6];
+  aNode.Data[JUNCTION_INTERMIT_STOR_INIT_DEPTH_INDEX]  := TokList[7];
   Result := 0;
 end;
 

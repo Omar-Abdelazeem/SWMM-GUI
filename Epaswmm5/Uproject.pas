@@ -21,7 +21,7 @@ const
   MISSING          = -1.0e10;  //Missing value
   MAXGAGEPROPS     = 15;       //Max. index for raingage data array
   MAXSUBCATCHPROPS = 27;       //Max. index for subcatch data array
-  MAXNODEPROPS     = 21;       //Max. index for node data array
+  MAXNODEPROPS     = 25;       //Max. index for node data array
   MAXLINKPROPS     = 24;       //Max. index for link data array
   MAXINFILPROPS    = 5;        //Max. index for infil. data array
   MAXPOLLUTPROPS   = 9;        //Max. index for pollutant data array
@@ -151,12 +151,26 @@ const
 //------------------------
 // Junction property codes
 //------------------------
-  JUNCTION_MAX_DEPTH_INDEX       = 8;
-  JUNCTION_INIT_DEPTH_INDEX      = 9;
-  JUNCTION_SURCHARGE_DEPTH_INDEX = 10;
-  JUNCTION_PONDED_AREA_INDEX     = 11;
-  JUNCTION_INTERMIT_STOR_VOL_INDEX = 12;
-  JUNCTION_INTERMIT_STOR_HT_INDEX     = 13;
+  JUNCTION_MAX_DEPTH_INDEX          = 8;
+  JUNCTION_INIT_DEPTH_INDEX         = 9;
+  JUNCTION_SURCHARGE_DEPTH_INDEX    = 10;
+  JUNCTION_PONDED_AREA_INDEX        = 11;
+  JUNCTION_INTERMITTENT_TOGGLE_INDEX        = 12;
+
+  JUNCTION_PREASSURE_HEADING        = 13;
+  JUNCTION_INTERMIT_WITHDRAWAL_MIN_PRESSURE_INDEX  = 14;
+  JUNCTION_INTERMIT_WITHDRAWAL_EXPONENT_INDEX   = 15;
+  JUNCTION_INTERMIT_WITHDRAWAL_DESIRED_PRESSURE_INDEX   = 16;
+  JUNCTION_INTERMIT_WITHDRAWAL_DESIRED_RATE_INDEX   = 17;
+
+  JUNCTION_TANK_HEADING             = 18;
+  JUNCTION_INTERMIT_STOR_AREA_INDEX  = 19;
+  JUNCTION_INTERMIT_STOR_HT_INDEX   = 20;
+  JUNCTION_INTERMIT_STOR_INIT_DEPTH_INDEX   = 21;
+  JUNCTION_CONSUMPTION_HEADING      = 22;
+  JUNCTION_CONSUMPTION_BASE_RATE      = 23;
+  JUNCTION_CONSUMPTION_PATTERN      = 24;
+  JUNCTION_LEAKAGE_HEADING          = 25;
 
 //-----------------------
 // Outfall property codes

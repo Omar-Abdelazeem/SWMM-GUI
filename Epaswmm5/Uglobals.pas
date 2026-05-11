@@ -468,6 +468,7 @@ var
   NodeLegendFrame : TLegendFrame;
   LinkLegendFrame : TLegendFrame;
   TimeLegendFrame : TLegendFrame;
+  ShowIntermitStorNodes : Boolean = False;
 
 //-----------------
 // Analysis results

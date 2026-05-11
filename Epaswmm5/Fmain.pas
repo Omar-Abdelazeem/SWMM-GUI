@@ -368,6 +368,7 @@ type
     MnuWelcomeScreen: TMenuItem;
     MnuHelpShortcuts: TMenuItem;
     MnuBackdropGrayscale: TMenuItem;
+    MnuViewIntermitNodes: TMenuItem;
 
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
@@ -422,6 +423,7 @@ type
     procedure MnuModifySubcatchLegendClick(Sender: TObject);
     procedure MnuModifyLinkLegendClick(Sender: TObject);
     procedure MnuModifyNodeLegendClick(Sender: TObject);
+    procedure MnuViewIntermitNodesClick(Sender: TObject);
 
     procedure MnuProjectSummaryClick(Sender: TObject);
     procedure MnuProjectDefaultsClick(Sender: TObject);
@@ -1518,6 +1520,16 @@ begin
   MnuShowBackdrop.Checked := MapForm.Map.Backdrop.Visible;
   MnuShowBackdrop.Enabled := (Length(MapForm.Map.Backdrop.Filename) > 0);
 end;
+
+procedure TMainForm.MnuViewIntermitNodesClick(Sender: TObject);
+begin
+  Uglobals.ShowIntermitStorNodes := not Uglobals.ShowIntermitStorNodes;
+  MnuViewIntermitNodes.Checked := Uglobals.ShowIntermitStorNodes;
+
+  // Trigger a map repaint
+  if Assigned(MapForm) then
+    MapForm.RedrawMap;
+End;
 
 procedure TMainForm.MnuShowObjectsClick(Sender: TObject);
 //-----------------------------------------------------------------------------

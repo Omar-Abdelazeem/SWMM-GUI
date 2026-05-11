@@ -111,7 +111,8 @@ uses
   Dstorage in 'Dstorage.pas' {StorageForm},
   Dculvert in 'Dculvert.pas' {CulvertSelectorForm},
   Uresults in 'Uresults.pas',
-  Dwelcome in 'Dwelcome.pas' {WelcomeForm};
+  Dwelcome in 'Dwelcome.pas' {WelcomeForm},
+  UIntermitDisplay in 'UIntermitDisplay.pas';
 
 {$R *.RES}
 

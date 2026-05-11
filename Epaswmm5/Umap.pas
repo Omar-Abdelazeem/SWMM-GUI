@@ -18,7 +18,7 @@ interface
 
 uses
   Windows, Graphics, SysUtils, Dialogs, Forms, Classes,
-  Controls, Math, Jpeg, System.Types, System.UITypes,
+  Controls, Math, Jpeg, System.Types, System.UITypes, UintermitDisplay,
   Uglobals, Uproject, Uutils, Uvertex;
 
 const
@@ -211,6 +211,7 @@ type
     procedure DrawGageIDLabel(const Index: Integer; const P: TPoint);
 
     procedure DrawInletSymbol(L: TLink; P1: TPoint; P2: TPoint);
+    procedure DrawIntermitStorOverlay;
     procedure DrawLabels;
     procedure DrawLink(const P1: TPoint; const P2: TPoint; L: TLink);
     procedure DrawLinkIDLabel(const ObjType: Integer; const Index: Integer;
@@ -493,6 +494,7 @@ begin
   DrawNodes;
   DrawGages;
   DrawLabels;
+  DrawIntermitStorOverlay;
   LastColorIndex := -999;
 end;
 
@@ -799,8 +801,167 @@ begin
       Canvas.TextOut(P1.X, P1.Y, Text);
     end;
   end;
+
 end;
 
+
+procedure TMap.DrawIntermitStorOverlay;
+// ---------------------------------------------------------------------------
+// Draws virtual nodes and links that represent the intermittent storage
+// sub-network attached to each qualifying junction.
+//
+// Chain drawn for each demand junction (left to right in pixel space):
+//
+//   [Junction] ---> [W_OUTLET] ---> [_IS_ST_] ---> [C_OUT_] ---> [_Outfall_]
+//       |
+//       +---> [_L_Outfall_]   (leakage outfall, branching upward)
+//
+// Everything is done in pixel space so the overlay scales correctly at any
+// zoom level.  No world-coordinate offsets are used.
+// ---------------------------------------------------------------------------
+const
+  OVERLAY_COLOR   = clRed;
+  STEP_PX         = 40;   // horizontal spacing between virtual nodes (pixels)
+  BRANCH_PX       = 30;   // vertical offset for the leakage outfall branch
+  LABEL_FONT_SIZE = 7;
+
+var
+  I                : Integer;
+  N                : TNode;
+  JuncPt           : TPoint;
+  WOPt, STPt,
+  COPt, OFPt, LOFPt: TPoint;
+  JuncID,
+  SID, OID, LOID,
+  WOID, COID       : String;
+  Size             : Integer;
+  OldPenColor      : TColor;
+  OldBrushColor    : TColor;
+  OldBrushStyle    : TBrushStyle;
+  OldFontColor     : TColor;
+  OldFontSize      : Integer;
+begin
+  if not Uglobals.ShowIntermitStorNodes then Exit;
+  if Project = nil then Exit;
+  if Project.Lists[JUNCTION] = nil then Exit;
+
+  // ---------- save canvas state ----------
+  OldPenColor    := Canvas.Pen.Color;
+  OldBrushColor  := Canvas.Brush.Color;
+  OldBrushStyle  := Canvas.Brush.Style;
+  OldFontColor   := Canvas.Font.Color;
+  OldFontSize    := Canvas.Font.Size;
+
+  Canvas.Pen.Color    := OVERLAY_COLOR;
+  Canvas.Brush.Color  := OVERLAY_COLOR;
+  Canvas.Brush.Style  := bsClear;
+  Canvas.Font.Color   := OVERLAY_COLOR;
+  Canvas.Font.Size    := LABEL_FONT_SIZE;
+  Canvas.Pen.Width    := 1;
+  SetBkMode(Canvas.Handle, TRANSPARENT);
+
+  Size := Options.NodeSize + 1;
+
+  for I := 0 to Project.Lists[JUNCTION].Count - 1 do
+  begin
+    N := TNode(Project.Lists[JUNCTION].Objects[I]);
+
+    // Skip nodes with missing map coordinates
+    if (N.X = MISSING) or (N.Y = MISSING) then Continue;
+
+    // Skip junctions without intermittent storage
+    if not JunctionHasIntermitStorage(N) then Continue;
+
+    // Get the junction's pixel position; skip if off-screen
+    if not GetNodePixPos(N, JuncPt) then Continue;
+
+    JuncID := String(N.ID);
+    BuildIntermitIDs(JuncID, SID, OID, LOID, WOID, COID);
+
+    // ---- compute virtual node pixel positions ----
+    // Main chain runs left-to-right from the junction
+    WOPt   := Point(JuncPt.X + 1 * STEP_PX, JuncPt.Y);           // withdrawal outlet
+    STPt   := Point(JuncPt.X + 2 * STEP_PX, JuncPt.Y);           // storage tank
+    COPt   := Point(JuncPt.X + 3 * STEP_PX, JuncPt.Y);           // consumption outlet
+    OFPt   := Point(JuncPt.X + 4 * STEP_PX, JuncPt.Y);           // demand outfall
+    LOFPt  := Point(JuncPt.X,               JuncPt.Y - BRANCH_PX); // leakage outfall (up)
+
+    // ======================================================
+    // PASS 1 — draw links (under symbols)
+    // ======================================================
+    Canvas.Pen.Color := OVERLAY_COLOR;
+
+    // Junction -> withdrawal outlet
+    Canvas.MoveTo(JuncPt.X, JuncPt.Y);
+    Canvas.LineTo(WOPt.X,   WOPt.Y);
+
+    // Withdrawal outlet -> storage tank
+    Canvas.MoveTo(WOPt.X, WOPt.Y);
+    Canvas.LineTo(STPt.X, STPt.Y);
+
+    // Storage tank -> consumption outlet
+    Canvas.MoveTo(STPt.X, STPt.Y);
+    Canvas.LineTo(COPt.X, COPt.Y);
+
+    // Consumption outlet -> demand outfall
+    Canvas.MoveTo(COPt.X, COPt.Y);
+    Canvas.LineTo(OFPt.X, OFPt.Y);
+
+    // Junction -> leakage outfall (vertical branch upward)
+    Canvas.MoveTo(JuncPt.X, JuncPt.Y);
+    Canvas.LineTo(LOFPt.X,  LOFPt.Y);
+
+    // ======================================================
+    // PASS 2 — draw virtual node symbols + labels
+    // ======================================================
+
+    // --- Withdrawal outlet (valve/outlet symbol) ---
+    // Draw as a small valve diamond centered on WOPt
+    DrawLinkSymbol(
+      Point(WOPt.X - STEP_PX div 2, WOPt.Y),
+      Point(WOPt.X + STEP_PX div 2, WOPt.Y),
+      lsValve);
+    Canvas.TextOut(WOPt.X - Canvas.TextWidth(WOID) div 2,
+                   WOPt.Y + 10,
+                   WOID);
+
+    // --- Storage tank ---
+    DrawStorage(STPt.X, STPt.Y, Size);
+    Canvas.TextOut(STPt.X - Canvas.TextWidth(SID) div 2,
+                   STPt.Y - 18,
+                   SID);
+
+    // --- Consumption outlet (valve/outlet symbol) ---
+    DrawLinkSymbol(
+      Point(COPt.X - STEP_PX div 2, COPt.Y),
+      Point(COPt.X + STEP_PX div 2, COPt.Y),
+      lsValve);
+    Canvas.TextOut(COPt.X - Canvas.TextWidth(COID) div 2,
+                   COPt.Y + 10,
+                   COID);
+
+    // --- Demand outfall ---
+    DrawOutfall(OFPt.X, OFPt.Y, Size);
+    Canvas.TextOut(OFPt.X - Canvas.TextWidth(OID) div 2,
+                   OFPt.Y - 18,
+                   OID);
+
+    // --- Leakage outfall ---
+    DrawOutfall(LOFPt.X, LOFPt.Y, Size);
+    Canvas.TextOut(LOFPt.X + 8,
+                   LOFPt.Y - 8,
+                   LOID);
+  end;
+
+  // ---------- restore canvas state ----------
+  Canvas.Pen.Color    := OldPenColor;
+  Canvas.Brush.Color  := OldBrushColor;
+  Canvas.Brush.Style  := OldBrushStyle;
+  Canvas.Font.Color   := OldFontColor;
+  Canvas.Font.Size    := OldFontSize;
+  Canvas.Pen.Width    := 1;
+  SetBkMode(Canvas.Handle, OPAQUE);
+end;
 
 procedure TMap.DrawSubcatch(const Index: Integer);
 //-----------------------------------------------------------------------------

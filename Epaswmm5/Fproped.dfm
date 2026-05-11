@@ -18,7 +18,6 @@ object PropEditForm: TPropEditForm
   Font.Name = 'Segoe UI'
   Font.Style = []
   FormStyle = fsStayOnTop
-  OldCreateOrder = True
   Position = poDesigned
   OnClose = FormClose
   OnCreate = FormCreate
@@ -26,7 +25,6 @@ object PropEditForm: TPropEditForm
   OnDeactivate = FormDeactivate
   OnKeyDown = FormKeyDown
   OnShow = FormShow
-  PixelsPerInch = 96
   TextHeight = 15
   object Splitter1: TSplitter
     Left = 0

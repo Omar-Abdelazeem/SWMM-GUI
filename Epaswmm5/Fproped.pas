@@ -246,7 +246,12 @@ begin
 
   // User wants to edit a label's font
   else if (CurrentList = MAPLABEL)
-  then Uedit.EditLabelFont(Project.CurrentItem[CurrentList], Modified);
+  then Uedit.EditLabelFont(Project.CurrentItem[CurrentList], Modified)
+
+  // User want to edit an intermittent node's Consumption pattern
+  else if (CurrentList = JUNCTION) and (Index = JUNCTION_CONSUMPTION_PATTERN)
+  then EditCurve(RATINGCURVE, S);
+
 
   if Modified then MainForm.SetChangeFlags;
 end;

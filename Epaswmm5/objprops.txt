@@ -304,7 +304,7 @@ const
       ('',''),
       ('',''));
 
-  DefJunction: array [0..13] of String =
+  DefJunction: array [0..25] of String =
     ('',        //0 - ID
      '',        //1 - X
      '',        //2 - Y
@@ -317,10 +317,22 @@ const
      '0',       //9 - Init. Depth
      '0',       //10 - Surcharge Depth
      '0',       //11 - Ponded Area
-     '0',       //12 - Intermittent Storage volume
-     '0');      //13 - Intermittent Storage Height
+     'NO',      //12 - Is Demand node?
+     '',        //13 - Pressure Dependent Withdrawal heading
+     '0',       //14 - Minimum Pressure Hmin
+     '0',       //15 - Exponent n
+     '0',       //16 - Desired Pressure Hdes
+     '0',       //17 - Desired withdrawal rate Qdes
+     '',        //18 - Storage tank heading
+     '0',       //19 - Intermittent Storage Area
+     '0',       //20 - Intermittent Storage Height
+     '0',       //21 - Intermittent Storage Initial Depth
+     '',        //22 - Consumption heading
+     '0',       //23 - Base Consumption Rate
+     '*',       //24 - Consumption Pattern Name defined as Time Series
+     '');       //25 - Leakage heading
 
-  JunctionPropUnits: array [0..13, 0..1] of String =
+  JunctionPropUnits: array [0..25, 0..1] of String =
     ( ('',''),
       ('',''),
       ('',''),
@@ -333,8 +345,20 @@ const
       (' (ft)', ' (m)'),
       (' (ft)', ' (m)'),
       (' (ft'+#178+')', ' (m'+#178+')'),
+      ('',''),
+      ('',''),
+      (' (ft)', ' (m)'),
+      ('',''),
+      (' (ft)', ' (m)'),
+      ('',''),
+      ('',''),
       (' (ft'+#179+')', ' (m'+#179+')'),
-      (' (ft)', ' (m)'));
+      (' (ft)', ' (m)'),
+      (' (ft)', ' (m)'),
+      ('',''),
+      ('',''),
+      ('',''),
+      ('',''));
 
   DefOutfall: array [0..16] of String =
     ('',         //0 - ID
@@ -739,7 +763,7 @@ var
      (Name:'Infil. Pattern';    Style:esComboEdit; Mask:emNone;      Length:0)
     );
 
-  JunctionProps: array [0..13] of TPropRecord =
+  JunctionProps: array [0..25] of TPropRecord =
     ((Name:'Name';              Style:esEdit;      Mask:emNoSpace;    Length:0),
      (Name:'X-Coordinate';      Style:esEdit;      Mask:emNumber;     Length:0),
      (Name:'Y-Coordinate';      Style:esEdit;      Mask:emNumber;     Length:0),
@@ -752,8 +776,21 @@ var
      (Name:'Initial Depth';     Style:esEdit;      Mask:emPosNumber;  Length:0),
      (Name:'Surcharge Depth';   Style:esEdit;      Mask:emPosNumber;  Length:0),
      (Name:'Ponded Area';       Style:esEdit;      Mask:emPosNumber;  Length:0),
-     (Name:'Interm. Stor. Vol.';   Style:esEdit;   Mask:emPosNumber;  Length:0),
-     (Name:'Interm. Stor. Ht.';    Style:esEdit;   Mask:emPosNumber;  Length:0));
+     (Name:'Intermittent Demand Node'; Style:esComboList; Mask:emNone; List:'NO'#13'YES'),
+     (Name:'Pressure Dependent Withdrawal';     Style:esHeading),
+     (Name:'Min Pressure';    Style:esEdit;   Mask:emPosNumber;  Length:0),
+     (Name:'Exponent n';    Style:esEdit;   Mask:emPosNumber;  Length:0),
+     (Name:'Desired pressure';    Style:esEdit;   Mask:emPosNumber;  Length:0),
+     (Name:'Desired withdrawal rate';    Style:esEdit;   Mask:emNumber;  Length:0),
+     (Name:'Storage Tank';     Style:esHeading),
+     (Name:'Interm. Stor. Area.';   Style:esEdit;   Mask:emPosNumber;  Length:0),
+     (Name:'Interm. Stor. Ht.';    Style:esEdit;   Mask:emPosNumber;  Length:0),
+     (Name:'Interm. Stor. Initial Depth.';    Style:esEdit;   Mask:emPosNumber;  Length:0),
+     (Name:'Consumption';     Style:esHeading),
+     (Name:'Base Consumption rate';    Style:esEdit;   Mask:emNumber;  Length:0),
+     (Name:'Consumption Pattern';     Style:esComboEdit; Mask:emNoSpace;   Length:0;
+      List:''),
+     (Name:'Leakage';     Style:esHeading));
 
   OutfallProps: array[0..16] of TPropRecord =
     ((Name:'Name';              Style:esEdit;      Mask:emNoSpace;   Length:0),
@@ -979,7 +1016,7 @@ var
      'Optional monthly pattern that adjusts depression storage',
      'Optional monthly pattern that adjusts infiltration rate');
 
-  JunctionHint: array[0..13] of String =
+  JunctionHint: array[0..25] of String =
     ('User-assigned name of junction',
      'X coordinate of junction on study area map',
      'Y coordinate of junction on study area map',
@@ -993,8 +1030,20 @@ var
      'Initial water depth in junction',
      'Depth in excess of maximum depth before flooding occurs',
      'Area of ponded water when flooded',
-     'Volume of intermittent storage at junction',
-     'Height of intermittent storage at junction');
+     'Select YES if this junction is an intermittent demand node',
+     '',
+     'Minimum pressure required for withdrawal',
+     'Exponent (n) of the withdrawal function Withdrawal = C*H ^ n',
+     'Pressure at which the withdrawal is equal to the desired rate',
+     'The desired withdrawal rate. Used to adjust the resistance of the service connection',
+     '',
+     'Area of intermittent storage tank at junction',
+     'Height of intermittent storage tank at junction',
+     'Depth of intermittent storage tank at start of simulation at junction',
+     '',
+     'The base rate of water consumption from the tank',
+     'Name of consumption pattern curve (must be defined as a Time Series)',
+     '');
 
   OutfallHint: array[0..16] of String =
     ('User-assigned name of outfall',

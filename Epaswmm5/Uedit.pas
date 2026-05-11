@@ -544,7 +544,11 @@ begin
   // Update the Property Editor window
   case Ntype of
     JUNCTION:
-      PropEditForm.Editor.SetProps(JunctionProps, Project.PropList);
+      begin
+        JunctionProps[JUNCTION_CONSUMPTION_PATTERN].List :=
+          Project.Lists[TIMESERIES].Text;
+        PropEditForm.Editor.SetProps(JunctionProps, Project.PropList);
+      end;
     OUTFALL:
       begin
         OutfallProps[OUTFALL_TIDE_TABLE_INDEX].List :=
