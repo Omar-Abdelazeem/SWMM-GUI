@@ -6,7 +6,7 @@ uses
   SysUtils, Classes, Uproject, Uglobals, Uutils;
 
 procedure BuildIntermitIDs(const JuncID: String;
-  out StorageID, OutfallID, LkOutfallID, WOutletID, COutletID: String);
+  out StorageID, OutfallID, LkOutfallID, WOutletID, LOutletID, COutletID: String);
 
 function JunctionHasIntermitStorage(N: TNode): Boolean;
 
@@ -19,21 +19,24 @@ implementation
 //   Outfall   : '_Outfall_'  + JuncID
 //   LkOutfall : '_L_Outfall' + JuncID
 //   WOutlet   : 'W_OUTLET_'+ JuncID
+//   LOutlet   : '_L_OUTLET_'+ JuncID
 //   COutlet   : 'C_OUT_'   + JuncID   (consumption outlet)
 // ---------------------------------------------------------------------------
 procedure BuildIntermitIDs(const JuncID: String;
-  out StorageID, OutfallID, LkOutfallID, WOutletID, COutletID: String);
+  out StorageID, OutfallID, LkOutfallID, WOutletID, LOutletID, COutletID: String);
 begin
   StorageID   := '_IS_ST_'   + JuncID;
-  OutfallID   := '_IS_OF_'   + JuncID;
-  LkOutfallID := '_IS_LOF_'  + JuncID;
+  OutfallID   := '_OUTFALL_'   + JuncID;
+  LkOutfallID := '_L_OUTFALL_'  + JuncID;
   WOutletID   := 'W_OUTLET_' + JuncID;
+  LOutletID   := '_L_OUTLET_' + JuncID;
   COutletID   := 'C_OUT_'    + JuncID;
 
   if Length(StorageID)   > 16 then StorageID   := '_IS_ST_'   + Copy(JuncID, 1, 9);
-  if Length(OutfallID)   > 16 then OutfallID   := '_Outfall_'   + Copy(JuncID, 1, 9);
-  if Length(LkOutfallID) > 16 then LkOutfallID := '_L_Outfall_'  + Copy(JuncID, 1, 8);
+  if Length(OutfallID)   > 16 then OutfallID   := '_OUTFALL_'   + Copy(JuncID, 1, 9);
+  if Length(LkOutfallID) > 16 then LkOutfallID := '_L_OUTFALL_'  + Copy(JuncID, 1, 8);
   if Length(WOutletID)   > 16 then WOutletID   := 'W_OUTLET_' + Copy(JuncID, 1, 7);
+  if Length(LOutletID)   > 16 then LOutletID   := '_L_OUTLET_' + Copy(JuncID, 1, 8);
   if Length(COutletID)   > 16 then COutletID   := 'C_OUT_'    + Copy(JuncID, 1, 10);
 end;
 

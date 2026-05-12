@@ -47,10 +47,12 @@ type
     procedure UpdateCurveLists;
     procedure UpdateTimeseriesLists;
     procedure ShowPropertyHint(Sender: TObject; aRow: LongInt);
+
   public
     { Public declarations }
     Editor: TPropEdit;
     procedure RefreshPropertyHint;
+    procedure UpdateJunctionControls(Enabled: Boolean);
   end;
 
 var
@@ -134,6 +136,12 @@ begin
   IsValid := Uvalidate.ValidateEditor(Index, S, Errmsg);
   if (not IsValid) and (Length(Errmsg) > 0)
   then Uutils.MsgDlg(Errmsg, mtError, [mbOK]);
+
+  if (CurrentList = JUNCTION) and
+     (Index = JUNCTION_INTERMITTENT_TOGGLE_INDEX) then
+  begin
+    UpdateJunctionControls(SameText(S, 'YES'));;
+  end;
 end;
 
 procedure TPropEditForm.ButtonClick(Sender: TObject; Index: Integer;
@@ -387,6 +395,8 @@ begin
     OutletProps[OUTLET_QTABLE_INDEX].List := Project.Lists[RATINGCURVE].Text;
   WEIR:
     WeirProps[WEIR_COEFF_CURVE_INDEX].List := Project.Lists[WEIRCURVE].Text;
+  JUNCTION:
+    JunctionProps[JUNCTION_CONSUMPTION_PATTERN].List := Project.Lists[RATINGCURVE].Text;
   end;
 end;
 
@@ -428,6 +438,53 @@ begin
   else S := 'Press F1 for Help';
   end;
   HintLabel.Caption := S;
+end;
+
+procedure TPropEditForm.UpdateJunctionControls(Enabled: Boolean);
+begin
+  if CurrentList <> JUNCTION then Exit;
+
+
+  // Pressure section
+  if Enabled then
+  begin
+    JunctionProps[JUNCTION_INTERMIT_WITHDRAWAL_MIN_PRESSURE_INDEX].Style := esEdit;
+    JunctionProps[JUNCTION_INTERMIT_WITHDRAWAL_EXPONENT_INDEX].Style := esEdit;
+    JunctionProps[JUNCTION_INTERMIT_WITHDRAWAL_DESIRED_PRESSURE_INDEX].Style := esEdit;
+    JunctionProps[JUNCTION_INTERMIT_WITHDRAWAL_DESIRED_RATE_INDEX].Style := esEdit;
+
+    // Storage section
+    JunctionProps[JUNCTION_INTERMIT_STOR_AREA_INDEX].Style := esEdit;
+    JunctionProps[JUNCTION_INTERMIT_STOR_HT_INDEX].Style := esEdit;
+    JunctionProps[JUNCTION_INTERMIT_STOR_INIT_DEPTH_INDEX].Style := esEdit;
+
+    // Consumption section
+    JunctionProps[JUNCTION_CONSUMPTION_BASE_RATE].Style := esEdit;
+    JunctionProps[JUNCTION_CONSUMPTION_PATTERN].Style := esComboEdit;
+
+    // Leakage section
+    JunctionProps[JUNCTION_LEAKAGE_COEFFICIENT_INDEX].Style := esEdit;
+    JunctionProps[JUNCTION_LEAKAGE_EXPONENT_INDEX].Style := esEdit;
+  end
+  else
+  begin
+    JunctionProps[JUNCTION_INTERMIT_WITHDRAWAL_MIN_PRESSURE_INDEX].Style := esReadOnly;
+    JunctionProps[JUNCTION_INTERMIT_WITHDRAWAL_EXPONENT_INDEX].Style := esReadOnly;
+    JunctionProps[JUNCTION_INTERMIT_WITHDRAWAL_DESIRED_PRESSURE_INDEX].Style := esReadOnly;
+    JunctionProps[JUNCTION_INTERMIT_WITHDRAWAL_DESIRED_RATE_INDEX].Style := esReadOnly;
+
+    JunctionProps[JUNCTION_INTERMIT_STOR_AREA_INDEX].Style := esReadOnly;
+    JunctionProps[JUNCTION_INTERMIT_STOR_HT_INDEX].Style := esReadOnly;
+    JunctionProps[JUNCTION_INTERMIT_STOR_INIT_DEPTH_INDEX].Style := esReadOnly;
+
+    JunctionProps[JUNCTION_CONSUMPTION_BASE_RATE].Style := esReadOnly;
+    JunctionProps[JUNCTION_CONSUMPTION_PATTERN].Style := esReadOnly;
+
+    JunctionProps[JUNCTION_LEAKAGE_COEFFICIENT_INDEX].Style := esReadOnly;
+    JunctionProps[JUNCTION_LEAKAGE_EXPONENT_INDEX].Style := esReadOnly;
+  end;
+
+  Editor.Refresh;
 end;
 
 procedure TPropEditForm.RefreshPropertyHint;

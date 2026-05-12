@@ -830,10 +830,10 @@ var
   N                : TNode;
   JuncPt           : TPoint;
   WOPt, STPt,
-  COPt, OFPt, LOFPt: TPoint;
+  COPt, OFPt, LOFPt, LOUTPt: TPoint;
   JuncID,
   SID, OID, LOID,
-  WOID, COID       : String;
+  WOID, LOUTID, COID       : String;
   Size             : Integer;
   OldPenColor      : TColor;
   OldBrushColor    : TColor;
@@ -876,7 +876,7 @@ begin
     if not GetNodePixPos(N, JuncPt) then Continue;
 
     JuncID := String(N.ID);
-    BuildIntermitIDs(JuncID, SID, OID, LOID, WOID, COID);
+    BuildIntermitIDs(JuncID, SID, OID, LOID, WOID, LOUTID, COID);
 
     // ---- compute virtual node pixel positions ----
     // Main chain runs left-to-right from the junction
@@ -884,6 +884,7 @@ begin
     STPt   := Point(JuncPt.X + 2 * STEP_PX, JuncPt.Y);           // storage tank
     COPt   := Point(JuncPt.X + 3 * STEP_PX, JuncPt.Y);           // consumption outlet
     OFPt   := Point(JuncPt.X + 4 * STEP_PX, JuncPt.Y);           // demand outfall
+    LOUTPt := Point(JuncPt.X, JuncPt.Y - BRANCH_PX div 2);        // Leakage  outlet
     LOFPt  := Point(JuncPt.X,               JuncPt.Y - BRANCH_PX); // leakage outfall (up)
 
     // ======================================================
@@ -907,8 +908,12 @@ begin
     Canvas.MoveTo(COPt.X, COPt.Y);
     Canvas.LineTo(OFPt.X, OFPt.Y);
 
-    // Junction -> leakage outfall (vertical branch upward)
+    // Junction -> leakage Outlet (vertical branch upward)
     Canvas.MoveTo(JuncPt.X, JuncPt.Y);
+    Canvas.LineTo(LOUTPt.X,  LOUTPt.Y);
+
+    // Leakage Outlet -> leakage outfall (vertical branch upward)
+    Canvas.MoveTo(LOUTPt.X, LOUTPt.Y);
     Canvas.LineTo(LOFPt.X,  LOFPt.Y);
 
     // ======================================================
@@ -928,7 +933,7 @@ begin
     // --- Storage tank ---
     DrawStorage(STPt.X, STPt.Y, Size);
     Canvas.TextOut(STPt.X - Canvas.TextWidth(SID) div 2,
-                   STPt.Y - 18,
+                   STPt.Y - 25,
                    SID);
 
     // --- Consumption outlet (valve/outlet symbol) ---
@@ -946,10 +951,19 @@ begin
                    OFPt.Y - 18,
                    OID);
 
+    // --- Leakage outlet (valve/outlet symbol) ---
+    DrawLinkSymbol(
+      Point(LOUTPt.X - STEP_PX div 2, LOUTPt.Y),
+      Point(LOUTPt.X + STEP_PX div 2, LOUTPt.Y),
+      lsValve);
+    Canvas.TextOut(LOUTPt.X - Canvas.TextWidth(LOUTID) - 10,
+                   LOUTPt.Y - 10,
+                   LOUTID);
+
     // --- Leakage outfall ---
     DrawOutfall(LOFPt.X, LOFPt.Y, Size);
-    Canvas.TextOut(LOFPt.X + 8,
-                   LOFPt.Y - 8,
+    Canvas.TextOut(LOFPt.X - 40,
+                   LOFPt.Y - 20,
                    LOID);
   end;
 

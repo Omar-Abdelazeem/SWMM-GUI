@@ -21,7 +21,7 @@ const
   MISSING          = -1.0e10;  //Missing value
   MAXGAGEPROPS     = 15;       //Max. index for raingage data array
   MAXSUBCATCHPROPS = 27;       //Max. index for subcatch data array
-  MAXNODEPROPS     = 25;       //Max. index for node data array
+  MAXNODEPROPS     = 27;       //Max. index for node data array
   MAXLINKPROPS     = 24;       //Max. index for link data array
   MAXINFILPROPS    = 5;        //Max. index for infil. data array
   MAXPOLLUTPROPS   = 9;        //Max. index for pollutant data array
@@ -171,6 +171,8 @@ const
   JUNCTION_CONSUMPTION_BASE_RATE      = 23;
   JUNCTION_CONSUMPTION_PATTERN      = 24;
   JUNCTION_LEAKAGE_HEADING          = 25;
+  JUNCTION_LEAKAGE_COEFFICIENT_INDEX          = 26;
+  JUNCTION_LEAKAGE_EXPONENT_INDEX          = 27;
 
 //-----------------------
 // Outfall property codes

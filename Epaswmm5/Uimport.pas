@@ -1274,7 +1274,9 @@ begin
   else begin
     ID := TokList[0];
     // Skip auto-generated intermittent storage outlets
-    if (Pos('W_OUTLET_',TokList[0]) = 1) then
+    if (Pos('W_OUTLET_',TokList[0]) = 1) or
+       (Pos('_L_OUTLET_', TokList[0]) = 1) or
+       (Pos('_C_OUTLET_', TokList[0]) = 1) then
     begin
       Result := 0;
       Exit;
@@ -1968,6 +1970,14 @@ begin
 
     // Check if curve ID is same as for previous line
     ID := TokList[0];
+
+    // Skip auto-generated intermittent demand curves
+    if Pos('_DEMAND_', ID) = 1 then
+    begin
+      Result := 0;
+      Exit;
+    end;
+
     if (ID = PrevID) then
     begin
       Index := PrevIndex;
@@ -2899,7 +2909,7 @@ function ReadIntermitStorageData: Integer;
 //-----------------------------------------------------------------------------
 // Reads intermittent storage data from the custom [INTERMIT_STORAGE] section.
 // Format: JunctionID  Volume  Height
-// Finds the matching junction and restores the two storage property values.
+// Finds the matching junction and restores the property values.
 //-----------------------------------------------------------------------------
 var
   aNode : TNode;
@@ -2936,6 +2946,9 @@ begin
   aNode.Data[JUNCTION_INTERMIT_STOR_AREA_INDEX] := TokList[5];
   aNode.Data[JUNCTION_INTERMIT_STOR_HT_INDEX]  := TokList[6];
   aNode.Data[JUNCTION_INTERMIT_STOR_INIT_DEPTH_INDEX]  := TokList[7];
+  aNode.Data[JUNCTION_CONSUMPTION_BASE_RATE]  := TokList[8];
+  aNode.Data[JUNCTION_LEAKAGE_COEFFICIENT_INDEX]  := TokList[9];
+  aNode.Data[JUNCTION_LEAKAGE_EXPONENT_INDEX]  := TokList[10];
   Result := 0;
 end;
 

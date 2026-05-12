@@ -546,8 +546,12 @@ begin
     JUNCTION:
       begin
         JunctionProps[JUNCTION_CONSUMPTION_PATTERN].List :=
-          Project.Lists[TIMESERIES].Text;
+          Project.Lists[RATINGCURVE].Text;
         PropEditForm.Editor.SetProps(JunctionProps, Project.PropList);
+        PropEditForm.UpdateJunctionControls(SameText(
+          Project.PropList[JUNCTION_INTERMITTENT_TOGGLE_INDEX],
+          'YES'
+        ));
       end;
     OUTFALL:
       begin
