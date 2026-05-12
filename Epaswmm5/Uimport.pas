@@ -1972,11 +1972,11 @@ begin
     ID := TokList[0];
 
     // Skip auto-generated intermittent demand curves
-    if Pos('_DEMAND_', ID) = 1 then
-    begin
-      Result := 0;
-      Exit;
-    end;
+//    if Pos('_DEMAND_', ID) = 1 then
+//    begin
+//      Result := 0;
+//      Exit;
+//    end;
 
     if (ID = PrevID) then
     begin
