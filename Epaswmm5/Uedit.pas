@@ -513,6 +513,8 @@ var
   I         : Integer;
   LastIndex : Integer;
   N         : TNode;
+  DemandID  : String;
+  isDemandNode: Boolean;
 begin
   // Set the caption of the Property Editor window
   PropEditForm.Caption := ObjectLabels[Ntype] + ' ' +
@@ -545,13 +547,27 @@ begin
   case Ntype of
     JUNCTION:
       begin
+        isDemandNode :=  SameText(
+          Project.PropList[JUNCTION_INTERMITTENT_TOGGLE_INDEX],
+          'YES');
+
         JunctionProps[JUNCTION_CONSUMPTION_PATTERN].List :=
           Project.Lists[RATINGCURVE].Text;
         PropEditForm.Editor.SetProps(JunctionProps, Project.PropList);
-        PropEditForm.UpdateJunctionControls(SameText(
-          Project.PropList[JUNCTION_INTERMITTENT_TOGGLE_INDEX],
-          'YES'
-        ));
+        PropEditForm.UpdateJunctionControls(isDemandNode);
+        if isDemandNode then
+        begin
+          DemandID := '_DEMAND_' + String(N.ID);
+          if Length(DemandID) > 16 then
+            DemandID := '_DEMAND_' + Copy(String(N.ID), 1, 13);
+
+          N.Data[JUNCTION_CONSUMPTION_PATTERN] := DemandID;
+
+        end
+        else
+        begin
+          N.Data[JUNCTION_CONSUMPTION_PATTERN] := '';
+        end;
       end;
     OUTFALL:
       begin

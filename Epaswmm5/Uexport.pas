@@ -1004,7 +1004,7 @@ end;
 procedure ExportIntermitOutfalls(S: TStringlist);
 //-----------------------------------------------------------------------------
 var
-  I, J, K : Integer;
+  I : Integer;
   Line    : String;
   N       : TNode;
   JuncID     : String;
@@ -1087,9 +1087,6 @@ var
   I, J, K : Integer;
   Line    : String;
   N       : TNode;
-  StorArea : Single;
-  StorHt  : Single;
-  TmpNode : TNode;
   HasIntermitStor: Boolean;
 begin
   if Project.Lists[OUTFALL].Count = 0 then exit;
@@ -1205,8 +1202,6 @@ var
   Line       : String;
   N          : TNode;
   JuncID     : String;
-  OutfallID  : String;
-  LkOutfallID: String;
   StorageID  : String;
   Invert     : String;
   StorArea    : Single;
@@ -1281,9 +1276,6 @@ var
   Line : String;
   N    : TNode;
   X    : Single;
-  StorArea : Single;
-  StorHt  : Single;
-  TmpNode : TNode;
   HasIntermitStor: Boolean;
 begin
   if Project.Lists[STORAGE].Count = 0 then exit;
@@ -1517,7 +1509,6 @@ procedure ExportIntermitOutlets(S: TStringlist);
 var
   I     : Integer;
   Line  : String;
-  L     : TLink;
   N    : TNode;
   JuncID     : String;
   IntermitStorID: String;
@@ -1592,6 +1583,7 @@ begin
       DesiredRate := 0;
       DesiredPressure := 0;
       MinPressure := 0;
+      Coefficient := 0;
       Uutils.GetSingle(N.Data[JUNCTION_INTERMIT_WITHDRAWAL_DESIRED_RATE_INDEX], DesiredRate);
       Uutils.GetSingle(N.Data[JUNCTION_INTERMIT_WITHDRAWAL_DESIRED_PRESSURE_INDEX], DesiredPressure);
       Uutils.GetSingle(N.Data[JUNCTION_INTERMIT_WITHDRAWAL_MIN_PRESSURE_INDEX], MinPressure);
