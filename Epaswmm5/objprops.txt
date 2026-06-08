@@ -329,7 +329,7 @@ const
      '0',       //21 - Intermittent Storage Initial Depth
      '',        //22 - Consumption heading
      '0',       //23 - Base Consumption Rate
-     '*',       //24 - Consumption Pattern Name defined as Time Series
+     '',       //24 - Consumption Pattern Name defined as Time Series
      '',        //25 - Leakage heading
      '0',       //26 - Leakage Coefficient
      '0');      //27 - Leakage Exponent
@@ -792,8 +792,7 @@ var
      (Name:'Interm. Stor. Initial Depth.';    Style:esEdit;   Mask:emPosNumber;  Length:0),
      (Name:'Consumption';     Style:esHeading),
      (Name:'Base Consumption rate';    Style:esEdit;   Mask:emNumber;  Length:0),
-     (Name:'Consumption Pattern';     Style:esComboEdit; Mask:emNoSpace;   Length:0;
-      List:''),
+     (Name:'Consumption Pattern';     Style:esEdit; Mask:emNoSpace;   Length:0),
      (Name:'Leakage';     Style:esHeading),
      (Name:'Leakage Coefficient A';    Style:esEdit;   Mask:emPosNumber;  Length:0),
      (Name:'Leakage Exponent B';    Style:esEdit;   Mask:emPosNumber;  Length:0));

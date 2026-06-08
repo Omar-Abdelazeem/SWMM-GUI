@@ -915,6 +915,7 @@ const
   COL9 = -20;
   COL10 = -20;
   COL11 = -20;
+  COL12 = -20;
 
 var
   I               : Integer;
@@ -933,7 +934,7 @@ begin
 
   // Header row
   Line := Format(
-    '%-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s',
+    '%-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s',
     [
       -COL1, ';;Junction',
       -COL2, 'Min Pressure',
@@ -944,14 +945,15 @@ begin
       -COL7, 'Height',
       -COL8, 'Initial Depth',
       -COL9, 'Base Consumption Rate',
-      -COL10, 'Leakage Coefficient',
-      -COL11, 'Leakage Exponent'
+      -COL10, 'Base Consumption Pattern',
+      -COL11, 'Leakage Coefficient',
+      -COL12, 'Leakage Exponent'
     ]);
   S.Add(Line);
 
   // Underline row
   Line := Format(
-    '%-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s',
+    '%-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s',
     [
       -COL1, ';;--------------',
       -COL2, '------------------',
@@ -963,7 +965,8 @@ begin
       -COL8, '----------------',
       -COL9, '----------------',
       -COL10, '----------------',
-      -COL11, '----------------'
+      -COL11, '----------------',
+      -COL12, '----------------'
     ]);
   S.Add(Line);
 
@@ -982,7 +985,7 @@ begin
       if not isIntermittent then Continue;
 
       Line := Format(
-        '%-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s',
+        '%-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s',
         [
           -COL1, String(N.ID),
           -COL2, N.Data[JUNCTION_INTERMIT_WITHDRAWAL_MIN_PRESSURE_INDEX],
@@ -993,8 +996,9 @@ begin
           -COL7, N.Data[JUNCTION_INTERMIT_STOR_HT_INDEX],
           -COL8, N.Data[JUNCTION_INTERMIT_STOR_INIT_DEPTH_INDEX],
           -COL9, N.Data[JUNCTION_CONSUMPTION_BASE_RATE],
-          -COL10, N.Data[JUNCTION_LEAKAGE_COEFFICIENT_INDEX],
-          -COL11, N.Data[JUNCTION_LEAKAGE_EXPONENT_INDEX]
+          -COL10, N.Data[JUNCTION_CONSUMPTION_PATTERN],
+          -COL11, N.Data[JUNCTION_LEAKAGE_COEFFICIENT_INDEX],
+          -COL12, N.Data[JUNCTION_LEAKAGE_EXPONENT_INDEX]
         ]);
 
       S.Add(Line);
@@ -1515,6 +1519,7 @@ var
   OutletID  : String;
   LkOutletID: String;
   COutletID: String;
+  OutfallID: String;
   LkOutfallID: String;
   RatingCurveID: String;
   Invert     : String;
@@ -1564,6 +1569,7 @@ begin
       LkOutletID := '_L_OUTLET_' + JuncID;
       COutletID := '_C_OUTLET_' + JuncID;
       IntermitStorID := '_IS_ST_' + JuncID;
+      OutfallID  := '_Outfall_' + JuncID;
       LkOutfallID := '_L_Outfall_' + JuncID;
       RatingCurveID := '_DEMAND_' + JuncID;
 
@@ -1577,8 +1583,16 @@ begin
       if Length(COutletID) > 16 then
         COutletID := '_C_OUTLET_' + Copy(JuncID, 1, 13);
 
+      if Length(IntermitStorID) > 16 then
+        IntermitStorID := '_IS_ST_' + Copy(JuncID, 1, 13);
+
       if Length(RatingCurveID) > 16 then
         RatingCurveID := '_DEMAND_' + Copy(JuncID, 1, 13);
+
+      if Length(OutfallID) > 16 then
+        OutfallID := '_Outfall_' + Copy(JuncID, 1, 13);
+      if Length(LkOutfallID) > 16 then
+        LkOutfallID := '_L_Outfall_' + Copy(JuncID, 1, 12);
 
       DesiredRate := 0;
       DesiredPressure := 0;
@@ -1613,10 +1627,10 @@ begin
       Line := Line + Tab + Format('%-8s', ['YES']);
       S.Add(Line);
 
-      // Consumption outlet (From Tank to Leakage Outfall)
+      // Consumption outlet (From Tank to Outfall)
       Line := Format('%-16s', [COutletID]);
       Line := Line + Tab + Format('%-16s', [IntermitStorID]);
-      Line := Line + Tab + Format('%-16s', [LkOutfallID]);
+      Line := Line + Tab + Format('%-16s', [OutfallID]);
       Line := Line + Tab + Format('%-10s', ['0']);
       Line := Line + Tab + Format('%-15s', ['TABULAR/DEPTH']);
       Line := Line + Tab + Format('%-16s', [RatingCurveID]);

@@ -254,11 +254,8 @@ begin
 
   // User wants to edit a label's font
   else if (CurrentList = MAPLABEL)
-  then Uedit.EditLabelFont(Project.CurrentItem[CurrentList], Modified)
+  then Uedit.EditLabelFont(Project.CurrentItem[CurrentList], Modified);
 
-  // User want to edit an intermittent node's Consumption pattern
-  else if (CurrentList = JUNCTION) and (Index = JUNCTION_CONSUMPTION_PATTERN)
-  then EditCurve(RATINGCURVE, S);
 
 
   if Modified then MainForm.SetChangeFlags;
@@ -395,8 +392,6 @@ begin
     OutletProps[OUTLET_QTABLE_INDEX].List := Project.Lists[RATINGCURVE].Text;
   WEIR:
     WeirProps[WEIR_COEFF_CURVE_INDEX].List := Project.Lists[WEIRCURVE].Text;
-  JUNCTION:
-    JunctionProps[JUNCTION_CONSUMPTION_PATTERN].List := Project.Lists[RATINGCURVE].Text;
   end;
 end;
 
@@ -460,7 +455,7 @@ begin
 
     // Consumption section
     JunctionProps[JUNCTION_CONSUMPTION_BASE_RATE].Style := esEdit;
-    JunctionProps[JUNCTION_CONSUMPTION_PATTERN].Style := esComboEdit;
+    JunctionProps[JUNCTION_CONSUMPTION_PATTERN].Style := esEdit;
 
     // Leakage section
     JunctionProps[JUNCTION_LEAKAGE_COEFFICIENT_INDEX].Style := esEdit;
