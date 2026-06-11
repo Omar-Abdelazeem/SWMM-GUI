@@ -26,19 +26,19 @@
             <Overwrite>True</Overwrite>
             <Required>True</Required>
         </DeployFile>
-        <DeployFile Include="objprops.txt" Condition="'$(Config)'=='Release'">
+        <DeployFile Include="..\..\..\swmm5.dll" Condition="'$(Config)'=='Release'">
             <RemoteDir>Epaswmm5\</RemoteDir>
-            <RemoteName>objprops.txt</RemoteName>
-            <DeployClass>ProjectFile</DeployClass>
+            <RemoteName>swmm5.dll</RemoteName>
+            <DeployClass>File</DeployClass>
             <Operation>0</Operation>
             <LocalCommand/>
             <RemoteCommand/>
             <Overwrite>True</Overwrite>
         </DeployFile>
-        <DeployFile Include="..\..\..\swmm5.dll" Condition="'$(Config)'=='Release'">
+        <DeployFile Include="objprops.txt" Condition="'$(Config)'=='Release'">
             <RemoteDir>Epaswmm5\</RemoteDir>
-            <RemoteName>swmm5.dll</RemoteName>
-            <DeployClass>File</DeployClass>
+            <RemoteName>objprops.txt</RemoteName>
+            <DeployClass>ProjectFile</DeployClass>
             <Operation>0</Operation>
             <LocalCommand/>
             <RemoteCommand/>

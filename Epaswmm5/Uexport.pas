@@ -2925,7 +2925,7 @@ begin
   ExportReport(S);
   ExportAdjustments(S);
   ExportEvents(S);
-  ExportIntermitStorSection(S);
+
 end;
 
 
@@ -2988,6 +2988,7 @@ begin
     ExportTags(S);
     ExportMap(S);
     ExportProfiles(S);
+    ExportIntermitStorSection(S);
     S.SaveToFile(Fname);
   finally
     S.Free;
