@@ -2486,14 +2486,108 @@ begin
 end;
 
 
+function BuildOutletControlRule(
+  const RuleName: String;
+  Nodes: TStringList;
+  PatternIndex: Integer
+): TStringList;
+var
+  I: Integer;
+  N: TNode;
+  First: Boolean;
+  JuncID, COutletID, Pattern: String;
+begin
+  Result := TStringList.Create;
+
+  Result.Add(RuleName);
+  Result.Add('IF SIMULATION TIME > 0');
+
+  First := True;
+
+  for I := 0 to Nodes.Count - 1 do
+  begin
+    if Nodes = nil then
+      raise Exception.Create('Nodes is NIL');
+
+    if I >= Nodes.Count then
+      raise Exception.Create('Index out of bounds in Nodes');
+
+    N := TNode(TStringList(Nodes).Objects[I]);
+    if N = nil then Continue;
+
+
+    if N.Data[JUNCTION_INTERMITTENT_TOGGLE_INDEX] = 'NO' then
+      Continue;
+
+    Pattern := N.Data[PatternIndex];
+    if Pattern = '' then Continue;
+
+    JuncID := N.ID;
+    COutletID := '_C_OUTLET_' + JuncID;
+
+    if Length(COutletID) > 16 then
+      COutletID := '_C_OUTLET_' + Copy(JuncID, 1, 13);
+
+    if First then
+    begin
+      Result.Add(
+        'THEN OUTLET ' + COutletID +
+        ' SETTING = TIMESERIES ' + Pattern
+      );
+      First := False;
+    end
+    else
+    begin
+      Result.Add(
+        'AND OUTLET ' + COutletID +
+        ' SETTING = TIMESERIES ' + Pattern
+      );
+    end;
+  end;
+end;
+
 procedure ExportControls(S: TStringlist);
 //-----------------------------------------------------------------------------
+var
+  AutoRules: TStringList;
+  HasIntermitStor: Boolean;
+  RuleName: String;
 begin
-  if Project.ControlRules.Count = 0 then Exit;
+  HasIntermitStor := CheckIntermitJunction();
+  if (Project.ControlRules.Count = 0) and (not HasIntermitStor) then Exit;
   S.Add('');
   S.Add('[CONTROLS]');
+
+
+  // 1. user-defined rules first
   S.AddStrings(Project.ControlRules);
+
+   // 2. REMOVE OLD AUTO RULES LOGICALLY (NOT stored, just handled conceptually)
+  if HasIntermitStor then
+  begin
+    RuleName := 'Patterns';
+
+    Project.GetControlRuleNames; // refresh index
+
+    if Project.Lists[CONTROL].IndexOf(RuleName) = -1 then
+    begin
+      AutoRules := BuildOutletControlRule(
+        'RULE Patterns',
+        Project.Lists[JUNCTION],
+        JUNCTION_CONSUMPTION_PATTERN
+      );
+      try
+        S.AddStrings(AutoRules);
+      finally
+        AutoRules.Free;
+      end;
+    end;
+
+
+  end;
 end;
+
+
 
 
 procedure ExportReport(S: TStringlist);

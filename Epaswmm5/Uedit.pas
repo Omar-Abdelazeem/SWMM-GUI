@@ -513,7 +513,6 @@ var
   I         : Integer;
   LastIndex : Integer;
   N         : TNode;
-  DemandID  : String;
   isDemandNode: Boolean;
 begin
   // Set the caption of the Property Editor window
