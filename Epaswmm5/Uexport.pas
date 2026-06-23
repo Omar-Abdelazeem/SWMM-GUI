@@ -2487,9 +2487,7 @@ end;
 
 
 function BuildOutletControlRule(
-  const RuleName: String;
-  Nodes: TStringList;
-  PatternIndex: Integer
+  Nodes: TStringList
 ): TStringList;
 var
   I: Integer;
@@ -2498,31 +2496,27 @@ var
   JuncID, COutletID, Pattern: String;
 begin
   Result := TStringList.Create;
-
-  Result.Add(RuleName);
-  Result.Add('IF SIMULATION TIME > 0');
-
   First := True;
 
   for I := 0 to Nodes.Count - 1 do
   begin
-    if Nodes = nil then
-      raise Exception.Create('Nodes is NIL');
-
-    if I >= Nodes.Count then
-      raise Exception.Create('Index out of bounds in Nodes');
 
     N := TNode(TStringList(Nodes).Objects[I]);
     if N = nil then Continue;
 
+    if not sameText(Trim(N.Data[JUNCTION_INTERMITTENT_TOGGLE_INDEX]), 'YES') then
+      Continue;
+
+    Pattern := Trim(N.Data[JUNCTION_CONSUMPTION_PATTERN]);
+    if Pattern = '' then Continue;
 
     if N.Data[JUNCTION_INTERMITTENT_TOGGLE_INDEX] = 'NO' then
       Continue;
 
-    Pattern := N.Data[PatternIndex];
+    Pattern := Trim(N.Data[JUNCTION_CONSUMPTION_PATTERN]);
     if Pattern = '' then Continue;
 
-    JuncID := N.ID;
+    JuncID := String(N.ID);
     COutletID := '_C_OUTLET_' + JuncID;
 
     if Length(COutletID) > 16 then
@@ -2530,10 +2524,9 @@ begin
 
     if First then
     begin
-      Result.Add(
-        'THEN OUTLET ' + COutletID +
-        ' SETTING = TIMESERIES ' + Pattern
-      );
+      Result.Add('RULE Patterns');
+      Result.Add('IF SIMULATION TIME > 0');
+      Result.Add('THEN OUTLET ' + COutletID + ' SETTING + TIMESERIES ' + Pattern);
       First := False;
     end
     else
@@ -2551,39 +2544,44 @@ procedure ExportControls(S: TStringlist);
 var
   AutoRules: TStringList;
   HasIntermitStor: Boolean;
-  RuleName: String;
+  I: Integer;
+  Line: String;
 begin
   HasIntermitStor := CheckIntermitJunction();
   if (Project.ControlRules.Count = 0) and (not HasIntermitStor) then Exit;
+
   S.Add('');
   S.Add('[CONTROLS]');
 
+  I := 0;
+  while I < Project.ControlRules.Count do
+  begin
+      Line := Trim(Project.ControlRules[I]);
 
-  // 1. user-defined rules first
-  S.AddStrings(Project.ControlRules);
+      if SameText(Line, 'RULE Patterns') then
+      begin
+          Inc(I);
+          while (I < Project.ControlRules.Count) and
+                not StartsText('RULE ', Trim(Project.ControlRules[I])) do
+          Inc(I);
+      end
+      else
+      begin
+        S.Add(Project.ControlRules[I]);
+        Inc(I);
+      end;
+  end;
 
-   // 2. REMOVE OLD AUTO RULES LOGICALLY (NOT stored, just handled conceptually)
+
   if HasIntermitStor then
   begin
-    RuleName := 'Patterns';
-
-    Project.GetControlRuleNames; // refresh index
-
-    if Project.Lists[CONTROL].IndexOf(RuleName) = -1 then
-    begin
-      AutoRules := BuildOutletControlRule(
-        'RULE Patterns',
-        Project.Lists[JUNCTION],
-        JUNCTION_CONSUMPTION_PATTERN
-      );
-      try
+    AutoRules := BuildOutletControlRule(Project.Lists[JUNCTION]);
+    try
+      if AutoRules.Count > 0 then
         S.AddStrings(AutoRules);
-      finally
-        AutoRules.Free;
-      end;
+    finally
+      AutoRules.Free;
     end;
-
-
   end;
 end;
 
