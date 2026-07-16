@@ -38,7 +38,23 @@ var
   TreatCount : Integer;      // # nodes w/ treatment
   Tab        : String;       // tab or space character
   SaveToPath : String;       // path of saved project file
+  CurvesHeaderWrittern : Boolean;
 
+
+procedure EnsureCurvesHeader(S: TStringlist);
+//-----------------------------------------------------------------------------
+var
+  Line: String;
+begin
+  if CurvesHeaderWrittern then exit;
+  S.Add('');
+  S.Add('[CURVES]');
+  Line := ';;Name          ' + Tab + 'Type      ' + Tab + 'X-Value   ' + Tab + 'Y-Value   ';
+  S.Add(Line);
+  Line := ';;--------------' + Tab + '----------' + Tab + '----------' + Tab + '----------';
+  S.Add(Line);
+  CurvesHeaderWrittern := True;
+end;
 
 procedure ExportComment(S: TStringlist; Comment: String);
 //-----------------------------------------------------------------------------
@@ -2375,7 +2391,7 @@ end;
 procedure ExportIntermitCurves(S: TStringlist);
 //-----------------------------------------------------------------------------
 var
-  I : Integer;
+  I, M : Integer;
   N    : TNode;
   Line    : String;
   JuncID     : String;
@@ -2385,27 +2401,22 @@ var
 begin
   // Check if there are any intermittent storage objects
   HasIntermitStor := CheckIntermitJunction();
-
   // Only write if there is at least one intermittent junction node
   if not HasIntermitStor then  exit;
 
-  S.Add('');
-  S.Add('[CURVES]');
-  Line := ';;Name          ' + Tab + 'Type      ' + Tab + 'X-Value   ' + Tab + 'Y-Value   ';
-  S.Add(Line);
-  Line := ';;--------------' + Tab + '----------' + Tab + '----------' + Tab + '----------';
-  S.Add(Line);
-
+  if CurvesHeaderWrittern then M := 1 else M := 0;
+  
   with Project.Lists[JUNCTION] do
     for I := 0 to Count-1 do
       begin
         N := TNode(Objects[I]);
-
         // Skip junctions with no intermittent storage
         isIntermittent := N.Data[JUNCTION_INTERMITTENT_TOGGLE_INDEX];
-
-
         if isIntermittent = 'NO' then continue;
+
+        EnsureCurvesHeader(S);
+        if M = 0 then M:= 1 else S.Add(';');
+
 
         JuncID    := String(N.ID);
         RatingCurveID := '_DEMAND_' + JuncID;
@@ -2415,17 +2426,130 @@ begin
           RatingCurveID := '_DEMAND_' + Copy(JuncID, 1, 13);
 
 
-          Line := Format('%-16s', [RatingCurveID]) + Tab +
-                  Format('%-10s', ['Rating']) + Tab +
-                  Format('%-10s', ['0']) + Tab +
-                  Format('%-10s', ['0']);
-          S.Add(Line);
+        Line := Format('%-16s', [RatingCurveID]) + Tab +
+                Format('%-10s', ['Rating']) + Tab +
+                Format('%-10s', ['0']) + Tab +
+                Format('%-10s', ['0']);
+        S.Add(Line);
 
-          Line := Format('%-16s', [RatingCurveID]) + Tab + '          ' + Tab +
-                  Format('%-10s', ['0.01']) + Tab +
-                  Format('%-10s', [N.Data[JUNCTION_INTERMIT_WITHDRAWAL_DESIRED_RATE_INDEX]]);
-          S.Add(Line);
+        Line := Format('%-16s', [RatingCurveID]) + Tab + '          ' + Tab +
+                Format('%-10s', ['0.01']) + Tab +
+                Format('%-10s', [N.Data[JUNCTION_INTERMIT_WITHDRAWAL_DESIRED_RATE_INDEX]]);
+        S.Add(Line);
       end;
+end;
+
+procedure ExportControlCurves(S: TStringList);
+//-----------------------------------------------------------------------------
+// Writes a synthetic float-valve throttilng [CURVES] entry (type CONTROL)
+// for each intermittent demand node, mapping tank depth -< outlet Setting
+//-----------------------------------------------------------------------------
+const
+  NSTEPS = 25;
+  HFLOAT = 0.9; // Tank float valve height (fixed for now)
+var
+  I, K              : Integer;
+  M                 : Integer;
+  N                 : TNode;
+  Line              : String;
+  JuncID            : String;
+  CurveID           : String;
+  HasIntermitStor   : Boolean;
+  HTank             : Single;
+  X, Y, DX          : Extended;
+begin
+  HasIntermitStor := CheckIntermitJunction();
+  if not HasIntermitStor then exit;
+
+  if CurvesHeaderWrittern then M := 1 else M := 0;
+  
+  with Project.Lists[JUNCTION] do
+    for I := 0 to count-1 do
+    begin
+      N := TNode(Objects[I]);
+
+      if not SameText(Trim(N.Data[JUNCTION_INTERMITTENT_TOGGLE_INDEX]), 'YES') then
+        continue;
+
+      HTank := 0;
+      Uutils.GetSingle(N.Data[JUNCTION_INTERMIT_STOR_HT_INDEX], HTank);
+
+      // skip junctions without a valid tank height above the float valve
+      if HTank <= HFLOAT then continue;
+
+      JuncID := String(N.ID);
+      CurveID := 'Control' + JuncID + 'Curve';
+      if Length(CurveID) > 16 then
+        CurveID := 'Control' + Copy(JuncID, 1, 6) + 'Curve';
+
+      EnsureCurvesHeader(S);
+      if M = 0 then M := 1 else S.Add(';');
+
+      DX := (HTank - HFLOAT) / NSTEPS;
+
+      for K := 0 to NSTEPS do
+      begin
+        X := HFLOAT + K * DX;
+        if K = NSTEPS then X := HTank;  // avoid float drift on last point
+
+        Y := Sqr(Tanh(5 * (HTank - x) / (HTank - HFLOAT)));
+
+        if K = 0 then
+          Line := Format('%-16s', [CurveID]) + Tab +
+                  Format('%-16s', ['CONTROL']) + Tab + 
+                  Format('%-10s', [Format('%.4g', [X])]) + Tab + 
+                  Format('%-10s', [Format('%.4g', [Y])])
+        else
+          Line := Format('%-16s', [CurveID]) + Tab + '          ' + Tab +
+                  Format('%-10s', [Format('%.4g', [X])]) + Tab + 
+                  Format('%-10s', [Format('%.4g', [Y])]);
+        S.Add(Line);
+      end;
+    end;
+end;
+
+function BuildFloatValveControlRule(Nodes: TStringList): TStringList;
+const
+  HFLOAT = 0.9;
+var
+  I: Integer;
+  N: TNode;
+  First: Boolean;
+  JuncID, StorageID, OutletID, CurveID: String;
+  HTank: Single;
+begin
+  Result := TStringList.Create;
+  First := True;
+
+  For I := 0 to Nodes.Count - 1 do
+  begin
+     N := TNode(TStringList(Nodes).Objects[I]);
+     if N = nil then Continue;
+
+     if not SameText(Trim(N.Data[JUNCTION_INTERMITTENT_TOGGLE_INDEX]), 'YES') then
+      Continue;
+
+     HTank := 0;
+     Uutils.GetSingle(N.Data[JUNCTION_INTERMIT_STOR_HT_INDEX], HTank);
+     if HTank <= HFLOAT then Continue;
+
+     JuncID := String(N.ID);
+     StorageID := '_IS_ST_' + JuncID;
+     OutletID := 'W_OUTLET_' + JuncID;
+     CurveID := 'Control'  + JuncID + 'Curve';
+
+     if Length(StorageID) > 16 then StorageID := '_IS_ST_' + Copy(JuncID, 1, 13);
+     if Length(OutletID) > 16 then OutletID := 'W_OUTLET_' + Copy(JuncID, 1, 13);
+     if Length(CurveID) > 16 then CurveID := 'Control' + Copy(JuncID, 1, 6) + 'Curve';
+
+     if not First then Result.add('');
+     First := False;
+     
+     Result.Add('RULE Control' + JuncID);
+     Result.Add('IF NODE ' + StorageID + ' DEPTH >= ' + Format('%.4g', [HFLOAT]));
+     Result.Add('THEN OUTLET ' + OutletID + ' SETTING = CURVE ' + CurveID);
+     
+  end;
 end;
 
 procedure ExportCurves(S: TStringlist);
@@ -2435,25 +2559,10 @@ var
   Line    : String;
   Name    : String;
   aCurve  : TCurve;
-  HasIntermitStor: Boolean;
 begin
   if Project.GetCurveCount = 0 then exit;
 
-    // Check if there are any intermittent storage objects
-  HasIntermitStor := CheckIntermitJunction();
-
-
-  // Only write header if the ExportIntermitCurves procedure didn't already
-  if not HasIntermitStor then
-  begin
-    S.Add('');
-    S.Add('[CURVES]');
-    Line := ';;Name          ' + Tab + 'Type      ' + Tab + 'X-Value   ' + Tab + 'Y-Value   ';
-    S.Add(Line);
-    Line := ';;--------------' + Tab + '----------' + Tab + '----------' + Tab + '----------';
-    S.Add(Line);
-  end;
-  M := 0;
+  if CurvesHeaderWrittern then M := 1 else M := 0;
   for I := 0 to MAXCLASS do
   begin
     if Project.IsCurve(I) then with Project.Lists[I] do
@@ -2461,8 +2570,17 @@ begin
       for J := 0 to Count-1 do
       begin
         Name := Strings[J];
+
+        // Skip auto-generated curves - these are regenerated fresh from
+        // junction data by ExportIntermitCurves / ExportcontrolCurves
+        if StartsText('_DEMAND_', Name) then continue;
+        if StartsText('Control', Name) and EndsText('Curve', Name) then continue;
+        
         aCurve := TCurve(Objects[J]);
+
+        EnsureCurvesHeader(S);
         if M = 0 then M := 1 else S.Add(';');
+        
         ExportComment(S, aCurve.Comment);
         N := MinIntValue([aCurve.Xdata.Count, aCurve.Ydata.Count]);
         if N > 0 then
@@ -2526,7 +2644,7 @@ begin
     begin
       Result.Add('RULE Patterns');
       Result.Add('IF SIMULATION TIME > 0');
-      Result.Add('THEN OUTLET ' + COutletID + ' SETTING + TIMESERIES ' + Pattern);
+      Result.Add('THEN OUTLET ' + COutletID + ' SETTING = TIMESERIES ' + Pattern);
       First := False;
     end
     else
@@ -2543,6 +2661,7 @@ procedure ExportControls(S: TStringlist);
 //-----------------------------------------------------------------------------
 var
   AutoRules: TStringList;
+  FloatValveRules:   TStringList;
   HasIntermitStor: Boolean;
   I: Integer;
   Line: String;
@@ -2558,7 +2677,7 @@ begin
   begin
       Line := Trim(Project.ControlRules[I]);
 
-      if SameText(Line, 'RULE Patterns') then
+      if SameText(Line, 'RULE Patterns') or StartsText('RULE Control', Line) then
       begin
           Inc(I);
           while (I < Project.ControlRules.Count) and
@@ -2581,6 +2700,15 @@ begin
         S.AddStrings(AutoRules);
     finally
       AutoRules.Free;
+    end;
+
+    FloatValveRules := BuildFloatValveControlRule(Project.Lists[JUNCTION]);
+    try
+      if FloatValveRules.Count > 0 then
+        S.Add('');
+        S.AddStrings(FloatValveRules);
+    finally
+      FloatValveRules.Free;
     end;
   end;
 end;
@@ -2958,6 +3086,7 @@ begin
   DWFCount    := 0;
   RDIICount   := 0;
   TreatCount  := 0;
+  CurvesHeaderWrittern := False;
 
   ExportTitle(S);
   ExportOptions(S);
@@ -3010,6 +3139,7 @@ begin
   ExportDWflows(S);
   ExportHydrographs(S);
   ExportIIflows(S);
+  ExportControlCurves(S);
   ExportIntermitCurves(S);
   ExportCurves(S);
   ExportTimeseries(S);
