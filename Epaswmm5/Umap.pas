@@ -25,6 +25,12 @@ const
   MAX_INT_COORD = 32767;
   MAX_POINTS    = 1000;
 
+  // Marks the auto-generated intermittent-supply storage tank, outfalls,
+  // and outlets on the map so they're visually distinct from objects the
+  // user drew - only applied while no results variable is selected for
+  // color-coding, so it never hides actual simulation results.
+  INTERMIT_GENERATED_COLOR = clFuchsia;
+
 type
   // Map physical dimensions
   TMapDimensions = record
@@ -708,6 +714,17 @@ begin
     SetNodeColor(ObjType, Index);
     Size := SetNodeSize;
 
+    // Mark an auto-generated intermittent-supply node with a distinct
+    // outline color when no results variable is currently selected, so
+    // it's obvious it was generated without masking actual result colors.
+    if (CurrentNodeVar = NOVIEW) and
+       UIntermitDisplay.IsIntermitGeneratedID(Project.Lists[ObjType].Strings[Index])
+    then
+    begin
+      Canvas.Pen.Color := INTERMIT_GENERATED_COLOR;
+      LastColorIndex := -999;
+    end;
+
     // Draw the node
     if ObjType = STORAGE then
     begin
@@ -736,6 +753,18 @@ begin
     L := Project.GetLink(ObjType, Index);
     SetLinkColor(ObjType, Index);
     Size := SetLinkSize;
+
+    // Mark an auto-generated intermittent-supply outlet with a distinct
+    // color when no results variable is currently selected, so it's
+    // obvious it was generated without masking actual result colors.
+    if (CurrentLinkVar = NOVIEW) and
+       UIntermitDisplay.IsIntermitGeneratedID(Project.Lists[ObjType].Strings[Index])
+    then
+    begin
+      Canvas.Pen.Color := INTERMIT_GENERATED_COLOR;
+      Canvas.Brush.Color := INTERMIT_GENERATED_COLOR;
+      LastColorIndex := -999;
+    end;
 
     // Draw border if called for
     // (Line size adjusted to insure that border gets displayed)

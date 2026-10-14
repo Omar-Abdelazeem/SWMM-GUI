@@ -367,13 +367,42 @@ follow-up if they turn out to matter in practice.)
 ### 8.5 Placement of the generated objects
 
 Since the generated nodes need real map coordinates (not just pixel offsets),
-`SyncIntermitObjects` estimates a sensible spacing from the spread of the
-project's existing junctions (2% of their bounding-box diagonal, or a fixed
-fallback if none are placed yet) and lays the chain out around the junction:
-storage tank one step east, demand outfall two steps east, leakage outfall one
-step north. If the junction itself has no coordinates yet, its generated
-objects are left unplaced too (consistent with how any other node with
-missing coordinates is treated elsewhere in the GUI).
+`SyncIntermitObjects` (`GetIntermitSpacing`) estimates a sensible spacing and
+lays the chain out around the junction: storage tank one step east, demand
+outfall two steps east, leakage outfall one step north. If the junction
+itself has no coordinates yet, its generated objects are left unplaced too
+(consistent with how any other node with missing coordinates is treated
+elsewhere in the GUI).
+
+The spacing itself is chosen with a fallback chain, because a single
+heuristic breaks down in different common situations:
+
+1. **Spread of the project's junctions** - if at least two are placed far
+   enough apart to measure a real extent, use 6% of their bounding-box
+   diagonal. This scales naturally with the size of the network.
+2. **Average conduit length** - a small or brand-new project (e.g. a single
+   test junction with no other nodes placed) has no meaningful spread to
+   measure in step 1. If the project has any conduits, their average length
+   is a good proxy for "what a normal distance looks like here" and is used
+   instead (30% of it).
+3. **Fixed fallback** (`50` world units) - only used if neither of the above
+   is available. Deliberately *not* based on the raw magnitude of the
+   junction's X/Y coordinates - projected coordinate systems (State Plane,
+   UTM, etc.) commonly use large false-easting/northing offsets unrelated to
+   the actual size of the network, which would otherwise produce a wildly
+   oversized (or tiny) gap depending on the project's location on Earth.
+
+### 8.6 Visually marking generated objects
+
+To make it obvious at a glance which map objects were generated rather than
+drawn by the user, `Umap.TMap.DrawObject` gives the storage tank, outfalls,
+and outlets a distinct outline color (`clFuchsia`) - but **only while no
+results variable is currently selected** for node/link color-coding. As soon
+as the user picks a variable to color by (e.g. Node ▸ Depth), normal
+legend-based result coloring takes over completely for these objects too, the
+same as for any other node/link - so the marking never hides actual
+simulation results, it only helps distinguish "what is this, structurally"
+while just browsing the network.
 
 ---
 

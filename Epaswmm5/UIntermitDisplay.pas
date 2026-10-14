@@ -3,7 +3,7 @@ unit UIntermitDisplay;
 interface
 
 uses
-  SysUtils, Classes, Uproject, Uglobals, Uutils;
+  SysUtils, Classes, Math, Uproject, Uglobals, Uutils;
 
 const
   // Default float valve height used when a junction has none set
@@ -120,17 +120,36 @@ end;
 
 // ---------------------------------------------------------------------------
 // Estimates a sensible world-coordinate spacing to lay out the synthetic
-// sub-network near its parent junction, based on the overall spread of the
-// project's junctions. Falls back to a fixed value if no coordinates are
-// available yet (e.g., a brand new project).
+// sub-network near its parent junction.
+//
+// 1) If at least two junctions are placed far enough apart to measure a
+//    real extent, use a fraction of that spread - this keeps the chain
+//    sized sensibly relative to the rest of the network.
+// 2) Otherwise (e.g. only one junction placed so far - a common case for a
+//    small test project), fall back to a fraction of the project's average
+//    conduit length, a proxy for "what a normal distance looks like here"
+//    that - unlike the junctions' own coordinates - doesn't collapse to
+//    zero with too few points to compare.
+// 3) As a last resort (nothing else to learn a scale from), use a modest
+//    fixed default. Deliberately NOT based on the raw magnitude of a
+//    junction's X/Y, since projected coordinate systems (State Plane, UTM,
+//    etc.) routinely use large false-easting/northing offsets unrelated to
+//    the network's actual size, which would produce a wildly oversized gap.
 // ---------------------------------------------------------------------------
 function GetIntermitSpacing: Extended;
+const
+  MIN_SPACING = 10;
 var
   I: Integer;
   N: TNode;
+  L: TLink;
   XMin, XMax, YMin, YMax, Diag: Extended;
   HasAny: Boolean;
+  LenSum: Extended;
+  LenCount: Integer;
+  Len: Single;
 begin
+  // 1) Spread of the project's junctions
   HasAny := False;
   XMin := 0; XMax := 0; YMin := 0; YMax := 0;
   with Project.Lists[JUNCTION] do
@@ -152,12 +171,38 @@ begin
       end;
     end;
 
-  Result := 10;
   if HasAny then
   begin
     Diag := Sqrt(Sqr(XMax - XMin) + Sqr(YMax - YMin));
-    if Diag > 0 then Result := Diag * 0.02;
+    if Diag > 0 then
+    begin
+      Result := Max(MIN_SPACING, Diag * 0.06);
+      Exit;
+    end;
   end;
+
+  // 2) Average conduit length, if any conduits exist
+  LenSum := 0;
+  LenCount := 0;
+  with Project.Lists[CONDUIT] do
+    for I := 0 to Count - 1 do
+    begin
+      L := TLink(Objects[I]);
+      Len := 0;
+      if Uutils.GetSingle(L.Data[CONDUIT_LENGTH_INDEX], Len) and (Len > 0) then
+      begin
+        LenSum := LenSum + Len;
+        Inc(LenCount);
+      end;
+    end;
+  if LenCount > 0 then
+  begin
+    Result := Max(MIN_SPACING, (LenSum / LenCount) * 0.3);
+    Exit;
+  end;
+
+  // 3) Fixed fallback
+  Result := 50;
 end;
 
 // ---------------------------------------------------------------------------
