@@ -338,7 +338,33 @@ begin
 end;
 ```
 
-### 8.4 Placement of the generated objects
+### 8.4 Generated objects are read-only and cannot be deleted directly
+
+Since the junction's properties are the real source of truth and the
+generated network is just their "compiled" form (§8.2), a user editing or
+deleting a generated object directly would be misleading — any such change
+would simply be overwritten (or recreated) the next time `SyncIntermitObjects`
+runs. To make that clear instead of surprising, two guards were added:
+
+- **Property Editor**: `PropEdit.TPropEdit` gained a `ReadOnlyOverride`
+  property that forces every row read-only (visually and behaviorally)
+  regardless of its own per-field style. `Uedit.EditNode`/`EditLink` set it
+  whenever the selected Storage/Outfall/Outlet's ID matches
+  `UIntermitDisplay.IsIntermitGeneratedID`, so a generated object's properties
+  can still be inspected but never edited (including its name and
+  coordinates).
+- **Deletion**: `Ubrowser.BrowserDeleteObject` (the single routine behind both
+  the Browser's Delete button and the map's Delete key) now checks the same
+  predicate first and, if the selected object is generated, shows an
+  explanatory message and refuses to delete it — pointing the user back to
+  the junction's "Intermittent Demand Node" toggle / tank size instead.
+
+(Renaming a *real*, user-created object to collide with one of the reserved
+ID prefixes, or using "Convert Object Type" on a generated object, are not
+specifically guarded against - low-probability edge cases left for a
+follow-up if they turn out to matter in practice.)
+
+### 8.5 Placement of the generated objects
 
 Since the generated nodes need real map coordinates (not just pixel offsets),
 `SyncIntermitObjects` estimates a sensible spacing from the spread of the
@@ -402,3 +428,7 @@ missing coordinates is treated elsewhere in the GUI).
   `[INTERMIT_STORAGE]` line with between 8 and 11 tokens could raise an
   index-out-of-range error. Pre-existing, unrelated to this feature's design,
   and not touched here.
+- Generated objects are protected from editing (§8.4) and deletion, but
+  renaming a *real* object to collide with a reserved ID prefix, or using
+  "Convert Object Type" on a generated object, are not specifically guarded
+  against.

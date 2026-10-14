@@ -71,7 +71,7 @@ uses
   Dtsect,  Dtseries, Dcurve, Dcontrol, Dsubland, Dpattern, Dxsect, Dgwater,
   Dinflows, Dclimate, Dsnow, Dnotes, Dunithyd, Dtreat, Ubrowser, Uoutput,
   Uupdate, Uvalidate, Dreporting, Devents, Dculvert, Dstorage, Dstreet,
-  Uinlet, Dinlet, DinletUsage, Ulid, PropEdit;
+  Uinlet, Dinlet, DinletUsage, Ulid, PropEdit, UIntermitDisplay;
 
 const
   TXT_VALUE = 'Value';
@@ -560,6 +560,8 @@ begin
         OutfallProps[OUTFALL_TIME_SERIES_INDEX].List :=
           Project.Lists[TIMESERIES].Text;
         PropEditForm.Editor.SetProps(OutfallProps,  Project.PropList);
+        PropEditForm.Editor.ReadOnlyOverride :=
+          UIntermitDisplay.IsIntermitGeneratedID(String(N.ID));
       end;
     DIVIDER:
       begin
@@ -570,6 +572,8 @@ begin
     STORAGE:
       begin
         PropEditForm.Editor.SetProps(StorageProps,  Project.PropList);
+        PropEditForm.Editor.ReadOnlyOverride :=
+          UIntermitDisplay.IsIntermitGeneratedID(String(N.ID));
       end;
   end;
 end;
@@ -637,6 +641,8 @@ begin
       begin
         OutletProps[OUTLET_QTABLE_INDEX].List := Project.Lists[RATINGCURVE].Text;
         PropEditForm.Editor.SetProps(OutletProps, Project.PropList);
+        PropEditForm.Editor.ReadOnlyOverride :=
+          UIntermitDisplay.IsIntermitGeneratedID(String(L.ID));
       end;
   end;
 end;

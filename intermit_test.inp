@@ -1,0 +1,49 @@
+[TITLE]
+Intermittent Supply Test
+
+[OPTIONS]
+FLOW_UNITS           LPS
+FLOW_ROUTING         DYNWAVE
+START_DATE           01/01/2024
+START_TIME           00:00:00
+END_DATE             01/04/2024
+END_TIME             00:00:00
+REPORT_START_DATE    01/01/2024
+REPORT_START_TIME    00:00:00
+ROUTING_STEP         0:01:00
+REPORT_STEP          00:15:00
+INERTIAL_DAMPING     PARTIAL
+FORCE_MAIN_EQUATION  H-W
+LINK_OFFSETS         DEPTH
+ALLOW_PONDING        NO
+
+[JUNCTIONS]
+;;Name           Elevation  MaxDepth  InitDepth  SurDepth  Aponded
+J1               100        5         0          0         0
+
+[DWF]
+;;Node           Constituent  Baseline  Patterns
+J1               FLOW         5         Supply
+
+[PATTERNS]
+;;Name     Type    Multipliers
+Supply     HOURLY  0    0    0    0    0    0
+Supply             1    1    1    1    0    0
+Supply             0    0    0    0    0    0
+Supply             1    1    1    1    0    0
+
+[TIMESERIES]
+;;Name     Time   Value
+FullOpen   0:00   1
+
+[REPORT]
+NODES   ALL
+LINKS   ALL
+
+[COORDINATES]
+;;Node   X-Coord  Y-Coord
+J1       5000     5000
+
+[INTERMIT_STORAGE]
+;;Junction  MinPressure  Exponent  DesiredPressure  DesiredRate  Area  Height  InitDepth  BaseConsRate  ConsPattern  LeakCoeff  LeakExpon  FloatValveHt
+J1           0            0.5       2                5            10    2       0.5        0.3           FullOpen     0.05       0.5        1.8

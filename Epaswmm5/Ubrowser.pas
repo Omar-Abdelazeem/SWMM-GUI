@@ -73,10 +73,15 @@ implementation
 
 uses
   Dquery, Dtimeplot, Dinletusage, Fmain, Fproped, Fmap, Fovmap,
-  Uedit, Uoutput, Uupdate;
+  Uedit, Uoutput, Uupdate, UIntermitDisplay;
 
 const
   TXT_DELETE_OBJECT = 'Delete selected object?';
+  TXT_CANT_DELETE_INTERMIT_OBJECT =
+    'This object is automatically generated from its junction''s ' +
+    'Intermittent Supply properties and cannot be deleted directly. ' +
+    'Turn off "Intermittent Demand Node" (or zero out its tank size) ' +
+    'on the junction instead.';
   TXT_TIME = 'Time';
   TXT_QUALITY = 'Quality';
 
@@ -242,6 +247,16 @@ begin
   // Make sure there's an object to delete
   I := Project.CurrentItem[Uglobals.CurrentList];
   if I < 0 then Exit;
+
+  // Objects generated from a junction's intermittent-supply properties are
+  // not independently deletable - they are rebuilt from the junction's
+  // properties every time the project is exported.
+  if UIntermitDisplay.IsIntermitGeneratedID(
+       Project.Lists[Uglobals.CurrentList].Strings[I]) then
+  begin
+    Uutils.MsgDlg(TXT_CANT_DELETE_INTERMIT_OBJECT, mtInformation, [mbOK], MainForm);
+    Exit;
+  end;
 
   // Ask for confirmation of deletion
   if Uglobals.ConfirmDelete then

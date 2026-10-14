@@ -99,6 +99,8 @@ type
     FCombo         : TComboBox;           // Combobox for selecting choices
 
     FModified      : Boolean;             // Modified flag
+    FReadOnlyOverride: Boolean;           // True locks every row read-only,
+                                           // regardless of its own Style
     FRow           : Integer;             // Current property index
     FReadOnlyColor : TColor;              // Backgnd color of read-only values
     FValueColor    : TColor;              // Foregnd color of property values
@@ -176,6 +178,8 @@ type
     procedure EndEditing;
     function  IsValid: Boolean;
     property  Modified: Boolean read FModified;
+    property  ReadOnlyOverride: Boolean read FReadOnlyOverride
+                 write FReadOnlyOverride;
     property  Row: Integer read FRow;
     property  ReadOnlyColor: TColor read FReadOnlyColor write SetReadOnlyColor;
     property  ValueColor: TColor read FValueColor write SetValueColor;
@@ -664,6 +668,7 @@ var
   S: String;
   Modified: Boolean;
 begin
+  if FReadOnlyOverride then Exit;
   if Assigned(FOnButtonClick) then
   begin
     S := FGrid.Cells[1, aRow];
@@ -907,7 +912,7 @@ begin
         Brush.Color := StyleServices.GetStyleColor(scPanel); //FHeadBackColor;
         Font.Color := FHeadForeColor;
       end
-      else if (FProps^[vRow].Style = esReadOnly) then
+      else if (FProps^[vRow].Style = esReadOnly) or FReadOnlyOverride then
       begin
         Brush.Color := FReadOnlyColor;
         Font.Color := FValueColor;
@@ -991,6 +996,7 @@ begin
   // No editor used for following conditions
   if CurCol <> 1 then Exit;
   if CurRow <> FGrid.Row then Exit;
+  if FReadOnlyOverride then Exit;
   if FProps^[CurRow].Style = esReadOnly then Exit;
   if FProps^[CurRow].Style = esButton then Exit;
 
@@ -1104,6 +1110,7 @@ begin
   ButtonPressed := False;
   ButtonVisible := False;
   FModified := False;
+  FReadOnlyOverride := False;
 
   // Assign pointers to the property array & initial values
   FProps := @PropArray;
