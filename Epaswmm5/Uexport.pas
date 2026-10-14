@@ -29,7 +29,7 @@ function  RelativePathName(Fname: String): String;
 implementation
 
 uses
-  Fmap, Uinifile, Uoutput, Dreporting, Ulid, Uinlet;
+  Fmap, Uinifile, Uoutput, Dreporting, Ulid, Uinlet, UIntermitDisplay;
 
 var
   DXFCount   : Integer;      // # nodes w/ external inflow
@@ -932,6 +932,7 @@ const
   COL10 = -20;
   COL11 = -20;
   COL12 = -20;
+  COL13 = -20;
 
 var
   I               : Integer;
@@ -950,7 +951,7 @@ begin
 
   // Header row
   Line := Format(
-    '%-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s',
+    '%-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s',
     [
       -COL1, ';;Junction',
       -COL2, 'Min Pressure',
@@ -963,13 +964,14 @@ begin
       -COL9, 'Base Consumption Rate',
       -COL10, 'Base Consumption Pattern',
       -COL11, 'Leakage Coefficient',
-      -COL12, 'Leakage Exponent'
+      -COL12, 'Leakage Exponent',
+      -COL13, 'Float Valve Height'
     ]);
   S.Add(Line);
 
   // Underline row
   Line := Format(
-    '%-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s',
+    '%-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s',
     [
       -COL1, ';;--------------',
       -COL2, '------------------',
@@ -982,7 +984,8 @@ begin
       -COL9, '----------------',
       -COL10, '----------------',
       -COL11, '----------------',
-      -COL12, '----------------'
+      -COL12, '----------------',
+      -COL13, '----------------'
     ]);
   S.Add(Line);
 
@@ -1001,7 +1004,7 @@ begin
       if not isIntermittent then Continue;
 
       Line := Format(
-        '%-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s',
+        '%-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s',
         [
           -COL1, String(N.ID),
           -COL2, N.Data[JUNCTION_INTERMIT_WITHDRAWAL_MIN_PRESSURE_INDEX],
@@ -1014,121 +1017,38 @@ begin
           -COL9, N.Data[JUNCTION_CONSUMPTION_BASE_RATE],
           -COL10, N.Data[JUNCTION_CONSUMPTION_PATTERN],
           -COL11, N.Data[JUNCTION_LEAKAGE_COEFFICIENT_INDEX],
-          -COL12, N.Data[JUNCTION_LEAKAGE_EXPONENT_INDEX]
+          -COL12, N.Data[JUNCTION_LEAKAGE_EXPONENT_INDEX],
+          -COL13, N.Data[JUNCTION_INTERMIT_FLOAT_VALVE_HT_INDEX]
         ]);
 
       S.Add(Line);
     end;
 end;
 
-procedure ExportIntermitOutfalls(S: TStringlist);
-//-----------------------------------------------------------------------------
-var
-  I : Integer;
-  Line    : String;
-  N       : TNode;
-  JuncID     : String;
-  OutfallID  : String;
-  LkOutfallID: String;
-  Invert     : String;
-  StorArea : Single;
-  StorHt  : Single;
-  HasIntermitStor: Boolean;
-begin
-
-    // Check if there are any intermittent storage objects
-    HasIntermitStor := CheckIntermitJunction();
-
-
-    // Only write if there is at least one intermittent junction node
-    if not HasIntermitStor then  exit;
-
-    // write header
-    S.Add('');
-    S.Add('[OUTFALLS]');
-    Line := ';;Name          ' + Tab + 'Elevation ' + Tab + 'Type      ';
-    Line := Line + Tab + 'Stage Data      ' + Tab + 'Gated   ';
-    Line := Line + Tab + 'Route To        ';
-    S.Add(Line);
-    Line := ';;--------------' + Tab + '----------' + Tab + '----------';
-    Line := Line + Tab + '----------------' + Tab + '--------';
-    Line := Line + Tab + '----------------';
-    S.Add(Line);
-
-    //------------------------------------------------------------
-    // Write the two outfalls per demand junction
-    //------------------------------------------------------------
-    with Project.Lists[JUNCTION] do
-      for I := 0 to Count-1 do
-      begin
-        N := TNode(Objects[I]);
-
-        // Skip junctions with no intermittent storage
-        StorArea := 0;
-        StorHt  := 0;
-        Uutils.GetSingle(N.Data[JUNCTION_INTERMIT_STOR_AREA_INDEX], StorArea);
-        Uutils.GetSingle(N.Data[JUNCTION_INTERMIT_STOR_HT_INDEX],  StorHt);
-        if (StorArea <= 0) and (StorHt <= 0) then continue;
-
-        JuncID    := String(N.ID);
-        Invert    := N.Data[NODE_INVERT_INDEX];
-        OutfallID  := '_Outfall_' + JuncID;
-        LkOutfallID := '_L_Outfall_' + JuncID;
-
-        // Truncate if over 16 chars
-        if Length(OutfallID) > 16 then
-          OutfallID := '_Outfall_' + Copy(JuncID, 1, 13);
-        if Length(LkOutfallID) > 16 then
-          LkOutfallID := '_L_Outfall_' + Copy(JuncID, 1, 12);
-
-        // Consumption outfall
-        Line := Format('%-16s', [OutfallID]);
-        Line := Line + Tab + Format('%-10s', [Invert]);
-        Line := Line + Tab + Format('%-10s', ['FREE']);
-        Line := Line + Tab + '                ';
-        Line := Line + Tab + Format('%-8s',  ['NO']);
-        Line := Line + Tab + '                ';
-        S.Add(Line);
-
-        // Leakage outfall
-        Line := Format('%-16s', [LkOutfallID]);
-        Line := Line + Tab + Format('%-10s', [Invert]);
-        Line := Line + Tab + Format('%-10s', ['FREE']);
-        Line := Line + Tab + '                ';
-        Line := Line + Tab + Format('%-8s',  ['NO']);
-        Line := Line + Tab + '                ';
-        S.Add(Line);
-      end;
-end;
-
 procedure ExportOutfalls(S: TStringlist);
 //-----------------------------------------------------------------------------
+// Writes the [OUTFALLS] section. The demand/leakage outfalls created for a
+// junction's intermittent supply network (see
+// UIntermitDisplay.SyncIntermitObjects) are regular members of
+// Project.Lists[OUTFALL] by the time this runs, so they are written out
+// here like any other outfall - no special casing needed.
 var
   I, J, K : Integer;
   Line    : String;
   N       : TNode;
-  HasIntermitStor: Boolean;
 begin
   if Project.Lists[OUTFALL].Count = 0 then exit;
 
-  // Check if there are any intermittent storage objects
-  HasIntermitStor := CheckIntermitJunction();
-
-
-  // Only write header if the ExportIntermitOutfalls procedure didn't already
-  if not HasIntermitStor then
-  begin
-    S.Add('');
-    S.Add('[OUTFALLS]');
-    Line := ';;Name          ' + Tab + 'Elevation ' + Tab + 'Type      ';
-    Line := Line + Tab + 'Stage Data      ' + Tab + 'Gated   ';
-    Line := Line + Tab + 'Route To        ';
-    S.Add(Line);
-    Line := ';;--------------' + Tab + '----------' + Tab + '----------';
-    Line := Line + Tab + '----------------' + Tab + '--------';
-    Line := Line + Tab + '----------------';
-    S.Add(Line);
-  end;
+  S.Add('');
+  S.Add('[OUTFALLS]');
+  Line := ';;Name          ' + Tab + 'Elevation ' + Tab + 'Type      ';
+  Line := Line + Tab + 'Stage Data      ' + Tab + 'Gated   ';
+  Line := Line + Tab + 'Route To        ';
+  S.Add(Line);
+  Line := ';;--------------' + Tab + '----------' + Tab + '----------';
+  Line := Line + Tab + '----------------' + Tab + '--------';
+  Line := Line + Tab + '----------------';
+  S.Add(Line);
 
   with Project.Lists[OUTFALL] do
     for I := 0 to Count-1 do
@@ -1215,112 +1135,35 @@ begin
     end;
 end;
 
-procedure ExportIntermitStorage(S: TStringlist);
-//-----------------------------------------------------------------------------
-var
-  I          : Integer;
-  Line       : String;
-  N          : TNode;
-  JuncID     : String;
-  StorageID  : String;
-  Invert     : String;
-  StorArea    : Single;
-  StorHt     : Single;
-  StorInitDepth   : Single;
-  HasIntermitStor     : Boolean;
-begin
-    // Check if there are any intermittent storage objects
-    HasIntermitStor := CheckIntermitJunction();
-
-
-    // Only write if there is at least one intermittent junction node
-    if not HasIntermitStor then  exit;
-
-    //------------------------------------------------------------
-    // Write the storage node per demand junction
-    //------------------------------------------------------------
-    S.Add('');
-    S.Add('[STORAGE]');
-    Line := ';;Name          ' + Tab + 'Elev.   ' + Tab + 'MaxDepth  ';
-    Line := Line + Tab + 'InitDepth ' + Tab + 'Shape     ';
-    Line := Line + Tab + 'Curve Type/Params           ';
-    Line := Line + Tab + 'SurDepth  ' + Tab + 'Fevap   ';
-    S.Add(Line);
-    Line := ';;--------------' + Tab + '--------' + Tab + '----------';
-    Line := Line + Tab + '----------' + Tab + '----------';
-    Line := Line + Tab + '----------------------------';
-    Line := Line + Tab + '----------' + Tab + '--------';
-    S.Add(Line);
-
-    with Project.Lists[JUNCTION] do
-      for I := 0 to Count-1 do
-      begin
-        N := TNode(Objects[I]);
-
-        // Skip junctions with no intermittent storage
-        StorArea := 0;
-        StorHt  := 0;
-        StorInitDepth := 0;
-        Uutils.GetSingle(N.Data[JUNCTION_INTERMIT_STOR_AREA_INDEX], StorArea);
-        Uutils.GetSingle(N.Data[JUNCTION_INTERMIT_STOR_HT_INDEX],  StorHt);
-        Uutils.GetSingle(N.Data[JUNCTION_INTERMIT_STOR_INIT_DEPTH_INDEX],  StorInitDepth);
-        if (StorArea <= 0) and (StorHt <= 0) then continue;
-
-        JuncID    := String(N.ID);
-        Invert    := N.Data[NODE_INVERT_INDEX];
-        StorageID := '_IS_ST_' + JuncID;
-
-        // Truncate if over 16 chars
-        if Length(StorageID) > 16 then
-          StorageID := '_IS_ST_' + Copy(JuncID, 1, 13);
-
-
-        Line := Format('%-16s', [StorageID]);
-        Line := Line + Tab + Format('%-8s',  [Invert]);
-        Line := Line + Tab + Format('%-10s', [N.Data[JUNCTION_INTERMIT_STOR_HT_INDEX]]);
-        Line := Line + Tab + Format('%-10s', [N.Data[JUNCTION_INTERMIT_STOR_INIT_DEPTH_INDEX]]);          // InitDepth
-        Line := Line + Tab + Format('%-10s', ['FUNCTIONAL']); // Shape
-        Line := Line + Tab + Format('%-8s',  ['0']);          // Coeff1 (exponent)
-        Line := Line + Tab + Format('%-8s',  ['0']);          // Coeff2 (power)
-        Line := Line + Tab + Format('%-10s',  [Format('%.4f', [StorArea])]); // Coeff0 = area
-        Line := Line + Tab + Format('%-10s', ['0']);          // SurDepth
-        Line := Line + Tab + Format('%-8s',  ['0']);          // Fevap
-        S.Add(Line);
-      end;
-end;
-
 procedure ExportStorage(S: TStringlist);
 //-----------------------------------------------------------------------------
+// Writes the [STORAGE] section. Storage nodes created to model a junction's
+// intermittent supply tank (see UIntermitDisplay.SyncIntermitObjects) are
+// regular members of Project.Lists[STORAGE] by the time this runs, so they
+// are written out here like any other storage unit - no special casing
+// needed.
 var
   I    : Integer;
   Line : String;
   N    : TNode;
   X    : Single;
-  HasIntermitStor: Boolean;
 begin
   if Project.Lists[STORAGE].Count = 0 then exit;
 
-  // Check if ExportIntermitStorObjects already wrote [STORAGE] header
-  HasIntermitStor := CheckIntermitJunction();
-
-  // Only write header if the intermittent storage procedure didn't already
-  if not HasIntermitStor then
-  begin
-    S.Add('');
-    S.Add('[STORAGE]');
-    Line := ';;Name          ' + Tab + 'Elev.   ' + Tab + 'MaxDepth  ';
-    Line := Line + Tab + 'InitDepth ' + Tab + 'Shape     ';
-    Line := Line + Tab + 'Curve Type/Params           ';
-    Line := Line + Tab + 'SurDepth ' + Tab + 'Fevap   ' + Tab + 'Psi     ';
-    Line := Line + Tab + 'Ksat    ' + Tab + 'IMD     ';
-    S.Add(Line);
-    Line := ';;--------------' + Tab + '--------' + Tab + '----------';
-    Line := Line + Tab + '-----------' + Tab + '----------';
-    Line := Line + Tab + '----------------------------';
-    Line := Line + Tab + '---------' + Tab + '--------' + Tab + '        ';
-    Line := Line + Tab + '--------' + Tab + '--------';
-    S.Add(Line);
-  end;
+  S.Add('');
+  S.Add('[STORAGE]');
+  Line := ';;Name          ' + Tab + 'Elev.   ' + Tab + 'MaxDepth  ';
+  Line := Line + Tab + 'InitDepth ' + Tab + 'Shape     ';
+  Line := Line + Tab + 'Curve Type/Params           ';
+  Line := Line + Tab + 'SurDepth ' + Tab + 'Fevap   ' + Tab + 'Psi     ';
+  Line := Line + Tab + 'Ksat    ' + Tab + 'IMD     ';
+  S.Add(Line);
+  Line := ';;--------------' + Tab + '--------' + Tab + '----------';
+  Line := Line + Tab + '-----------' + Tab + '----------';
+  Line := Line + Tab + '----------------------------';
+  Line := Line + Tab + '---------' + Tab + '--------' + Tab + '        ';
+  Line := Line + Tab + '--------' + Tab + '--------';
+  S.Add(Line);
 
   with Project.Lists[STORAGE] do
     for I := 0 to Count-1 do
@@ -1524,34 +1367,19 @@ begin
     end;
 end;
 
-procedure ExportIntermitOutlets(S: TStringlist);
+procedure ExportOutlets(S: TStringlist);
 //-----------------------------------------------------------------------------
+// Writes the [OUTLETS] section. The withdrawal/leakage/consumption outlets
+// created for a junction's intermittent supply network (see
+// UIntermitDisplay.SyncIntermitObjects) are regular members of
+// Project.Lists[OUTLET] by the time this runs, so they are written out
+// here like any other outlet - no special casing needed.
 var
   I     : Integer;
   Line  : String;
-  N    : TNode;
-  JuncID     : String;
-  IntermitStorID: String;
-  OutletID  : String;
-  LkOutletID: String;
-  COutletID: String;
-  OutfallID: String;
-  LkOutfallID: String;
-  RatingCurveID: String;
-  Invert     : String;
-  StorArea : Single;
-  StorHt  : Single;
-  DesiredRate     : Single;
-  DesiredPressure : Single;
-  MinPressure     : Single;
-  Coefficient     : Single;
-  HasIntermitStor: Boolean;
+  L     : TLink;
 begin
-
-  HasIntermitStor := CheckIntermitJunction();
-
-  if not HasIntermitStor then exit;
-  
+  if Project.Lists[OUTLET].Count = 0 then exit;
 
   S.Add('');
   S.Add('[OUTLETS]');
@@ -1563,129 +1391,6 @@ begin
   Line := Line + Tab + '----------' + Tab + '---------------';
   Line := Line + Tab + '----------------' + Tab + '----------' + Tab + '--------';
   S.Add(Line);
-
-  //------------------------------------------------------------
-  // Write the two outlets per demand junction
-  //------------------------------------------------------------
-  with Project.Lists[JUNCTION] do
-    for I := 0 to Count-1 do
-    begin
-      N := TNode(Objects[I]);
-
-      // Skip junctions with no intermittent storage
-      StorArea := 0;
-      StorHt  := 0;
-      Uutils.GetSingle(N.Data[JUNCTION_INTERMIT_STOR_AREA_INDEX], StorArea);
-      Uutils.GetSingle(N.Data[JUNCTION_INTERMIT_STOR_HT_INDEX],  StorHt);
-      if (StorArea <= 0) and (StorHt <= 0) then continue;
-
-      JuncID    := String(N.ID);
-      Invert    := N.Data[NODE_INVERT_INDEX];
-      OutletID  := 'W_OUTLET_' + JuncID;
-      LkOutletID := '_L_OUTLET_' + JuncID;
-      COutletID := '_C_OUTLET_' + JuncID;
-      IntermitStorID := '_IS_ST_' + JuncID;
-      OutfallID  := '_Outfall_' + JuncID;
-      LkOutfallID := '_L_Outfall_' + JuncID;
-      RatingCurveID := '_DEMAND_' + JuncID;
-
-      // Truncate if over 16 chars
-      if Length(OutletID) > 16 then
-        OutletID := 'W_OUTLET_' + Copy(JuncID, 1, 13);
-
-      if Length(LkOutletID) > 16 then
-        LkOutletID := '_L_OUTLET_' + Copy(JuncID, 1, 13);
-
-      if Length(COutletID) > 16 then
-        COutletID := '_C_OUTLET_' + Copy(JuncID, 1, 13);
-
-      if Length(IntermitStorID) > 16 then
-        IntermitStorID := '_IS_ST_' + Copy(JuncID, 1, 13);
-
-      if Length(RatingCurveID) > 16 then
-        RatingCurveID := '_DEMAND_' + Copy(JuncID, 1, 13);
-
-      if Length(OutfallID) > 16 then
-        OutfallID := '_Outfall_' + Copy(JuncID, 1, 13);
-      if Length(LkOutfallID) > 16 then
-        LkOutfallID := '_L_Outfall_' + Copy(JuncID, 1, 12);
-
-      DesiredRate := 0;
-      DesiredPressure := 0;
-      MinPressure := 0;
-      Coefficient := 0;
-      Uutils.GetSingle(N.Data[JUNCTION_INTERMIT_WITHDRAWAL_DESIRED_RATE_INDEX], DesiredRate);
-      Uutils.GetSingle(N.Data[JUNCTION_INTERMIT_WITHDRAWAL_DESIRED_PRESSURE_INDEX], DesiredPressure);
-      Uutils.GetSingle(N.Data[JUNCTION_INTERMIT_WITHDRAWAL_MIN_PRESSURE_INDEX], MinPressure);
-
-      if DesiredPressure > MinPressure then
-        Coefficient := DesiredRate / Sqrt(DesiredPressure - MinPressure);
-
-      // Withdrawal outlet (From Node to Tank)
-      Line := Format('%-16s', [OutletID]);
-      Line := Line + Tab + Format('%-16s', [JuncID]);
-      Line := Line + Tab + Format('%-16s', [IntermitStorID]);
-      Line := Line + Tab + Format('%-10s', ['0']);
-      Line := Line + Tab + Format('%-15s', ['FUNCTIONAL/DEPTH']);
-      Line := Line + Tab + Format('%-16s', [Format('%.6f', [Coefficient])]);
-      Line := Line + Tab + Format('%-10s', [N.Data[JUNCTION_INTERMIT_WITHDRAWAL_EXPONENT_INDEX]]);
-      Line := Line + Tab + Format('%-8s', ['YES']);
-      S.Add(Line);
-
-      // Leakage outlet (From Node to Leakage Outfall)
-      Line := Format('%-16s', [LkOutletID]);
-      Line := Line + Tab + Format('%-16s', [JuncID]);
-      Line := Line + Tab + Format('%-16s', [LkOutfallID]);
-      Line := Line + Tab + Format('%-10s', ['0']);
-      Line := Line + Tab + Format('%-15s', ['FUNCTIONAL/DEPTH']);
-      Line := Line + Tab + Format('%-16s', [N.Data[JUNCTION_LEAKAGE_COEFFICIENT_INDEX]]);
-      Line := Line + Tab + Format('%-10s', [N.Data[JUNCTION_LEAKAGE_EXPONENT_INDEX]]);
-      Line := Line + Tab + Format('%-8s', ['YES']);
-      S.Add(Line);
-
-      // Consumption outlet (From Tank to Outfall)
-      Line := Format('%-16s', [COutletID]);
-      Line := Line + Tab + Format('%-16s', [IntermitStorID]);
-      Line := Line + Tab + Format('%-16s', [OutfallID]);
-      Line := Line + Tab + Format('%-10s', ['0']);
-      Line := Line + Tab + Format('%-15s', ['TABULAR/DEPTH']);
-      Line := Line + Tab + Format('%-16s', [RatingCurveID]);
-      Line := Line + Tab + Format('%-10s', ['']);
-      Line := Line + Tab + Format('%-8s', ['YES']);
-      S.Add(Line);
-
-    end;
-
-end;
-
-
-procedure ExportOutlets(S: TStringlist);
-//-----------------------------------------------------------------------------
-var
-  I     : Integer;
-  Line  : String;
-  L     : TLink;
-  HasIntermitStor: Boolean;
-begin
-  if Project.Lists[OUTLET].Count = 0 then exit;
-  // Check if there are any intermittent storage objects
-  HasIntermitStor := CheckIntermitJunction();
-
-
-  // Only write header if the ExportIntermitOutlets procedure didn't already
-  if not HasIntermitStor then
-  begin
-    S.Add('');
-    S.Add('[OUTLETS]');
-    Line := ';;Name          ' + Tab + 'From Node       ' + Tab + 'To Node         ';
-    Line := Line + Tab + 'Offset    ' + Tab + 'Type           ';
-    Line := Line + Tab + 'QTable/Qcoeff   ' + Tab + 'Qexpon    ' + Tab + 'Gated   ';
-    S.Add(Line);
-    Line := ';;--------------' + Tab + '----------------' + Tab + '----------------';
-    Line := Line + Tab + '----------' + Tab + '---------------';
-    Line := Line + Tab + '----------------' + Tab + '----------' + Tab + '--------';
-    S.Add(Line);
-  end;
 
   with Project.Lists[OUTLET] do
     for I := 0 to Count-1 do
@@ -2446,7 +2151,6 @@ procedure ExportControlCurves(S: TStringList);
 //-----------------------------------------------------------------------------
 const
   NSTEPS = 25;
-  HFLOAT = 0.9; // Tank float valve height (fixed for now)
 var
   I, K              : Integer;
   M                 : Integer;
@@ -2456,6 +2160,7 @@ var
   CurveID           : String;
   HasIntermitStor   : Boolean;
   HTank             : Single;
+  HFloat            : Single;
   X, Y, DX          : Extended;
 begin
   HasIntermitStor := CheckIntermitJunction();
@@ -2474,8 +2179,11 @@ begin
       HTank := 0;
       Uutils.GetSingle(N.Data[JUNCTION_INTERMIT_STOR_HT_INDEX], HTank);
 
+      HFloat := UIntermitDisplay.DEFAULT_FLOAT_VALVE_HT;
+      Uutils.GetSingle(N.Data[JUNCTION_INTERMIT_FLOAT_VALVE_HT_INDEX], HFloat);
+
       // skip junctions without a valid tank height above the float valve
-      if HTank <= HFLOAT then continue;
+      if HTank <= HFloat then continue;
 
       JuncID := String(N.ID);
       CurveID := 'Control' + JuncID + 'Curve';
@@ -2485,14 +2193,14 @@ begin
       EnsureCurvesHeader(S);
       if M = 0 then M := 1 else S.Add(';');
 
-      DX := (HTank - HFLOAT) / NSTEPS;
+      DX := (HTank - HFloat) / NSTEPS;
 
       for K := 0 to NSTEPS do
       begin
-        X := HFLOAT + K * DX;
+        X := HFloat + K * DX;
         if K = NSTEPS then X := HTank;  // avoid float drift on last point
 
-        Y := Sqr(Tanh(5 * (HTank - x) / (HTank - HFLOAT)));
+        Y := Sqr(Tanh(5 * (HTank - x) / (HTank - HFloat)));
 
         if K = 0 then
           Line := Format('%-16s', [CurveID]) + Tab +
@@ -2509,14 +2217,13 @@ begin
 end;
 
 function BuildFloatValveControlRule(Nodes: TStringList): TStringList;
-const
-  HFLOAT = 0.9;
 var
   I: Integer;
   N: TNode;
   First: Boolean;
   JuncID, StorageID, OutletID, CurveID: String;
   HTank: Single;
+  HFloat: Single;
 begin
   Result := TStringList.Create;
   First := True;
@@ -2531,7 +2238,10 @@ begin
 
      HTank := 0;
      Uutils.GetSingle(N.Data[JUNCTION_INTERMIT_STOR_HT_INDEX], HTank);
-     if HTank <= HFLOAT then Continue;
+
+     HFloat := UIntermitDisplay.DEFAULT_FLOAT_VALVE_HT;
+     Uutils.GetSingle(N.Data[JUNCTION_INTERMIT_FLOAT_VALVE_HT_INDEX], HFloat);
+     if HTank <= HFloat then Continue;
 
      JuncID := String(N.ID);
      StorageID := '_IS_ST_' + JuncID;
@@ -2546,7 +2256,7 @@ begin
      First := False;
      
      Result.Add('RULE Control' + JuncID);
-     Result.Add('IF NODE ' + StorageID + ' DEPTH >= ' + Format('%.4g', [HFLOAT]));
+     Result.Add('IF NODE ' + StorageID + ' DEPTH >= ' + Format('%.4g', [HFloat]));
      Result.Add('THEN OUTLET ' + OutletID + ' SETTING = CURVE ' + CurveID);
      
   end;
@@ -3088,6 +2798,11 @@ begin
   TreatCount  := 0;
   CurvesHeaderWrittern := False;
 
+  // (Re)build the storage/outfall/outlet network that models each demand
+  // junction's intermittent supply so it exports - and later shows up in
+  // results - like any other project object (see UIntermitDisplay.pas).
+  UIntermitDisplay.SyncIntermitObjects;
+
   ExportTitle(S);
   ExportOptions(S);
   ExportFiles(S);
@@ -3107,16 +2822,13 @@ begin
   // These sections must be exported in the order as shown
   //******************************************************
   ExportJunctions(S);
-  ExportIntermitOutfalls(S);
   ExportOutfalls(S);
   ExportDividers(S);
-  ExportIntermitStorage(S);
   ExportStorage(S);
   ExportConduits(S);
   ExportPumps(S);
   ExportOrifices(S);
   ExportWeirs(S);
-  ExportIntermitOutlets(s);
   ExportOutlets(S);
 
   //******************************************************

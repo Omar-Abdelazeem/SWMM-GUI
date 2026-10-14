@@ -304,7 +304,7 @@ const
       ('',''),
       ('',''));
 
-  DefJunction: array [0..27] of String =
+  DefJunction: array [0..29] of String =
     ('',        //0 - ID
      '',        //1 - X
      '',        //2 - Y
@@ -332,9 +332,11 @@ const
      '',       //24 - Consumption Pattern Name defined as Time Series
      '',        //25 - Leakage heading
      '0',       //26 - Leakage Coefficient
-     '0');      //27 - Leakage Exponent
+     '0',       //27 - Leakage Exponent
+     '',        //28 - Float Valve heading
+     '0.9');    //29 - Tank Float Valve Height
 
-  JunctionPropUnits: array [0..27, 0..1] of String =
+  JunctionPropUnits: array [0..29, 0..1] of String =
     ( ('',''),
       ('',''),
       ('',''),
@@ -362,7 +364,9 @@ const
       ('',''),
       ('',''),
       ('',''),
-      ('',''));
+      ('',''),
+      ('',''),
+      (' (ft)', ' (m)'));
 
   DefOutfall: array [0..16] of String =
     ('',         //0 - ID
@@ -767,7 +771,7 @@ var
      (Name:'Infil. Pattern';    Style:esComboEdit; Mask:emNone;      Length:0)
     );
 
-  JunctionProps: array [0..27] of TPropRecord =
+  JunctionProps: array [0..29] of TPropRecord =
     ((Name:'Name';              Style:esEdit;      Mask:emNoSpace;    Length:0),
      (Name:'X-Coordinate';      Style:esEdit;      Mask:emNumber;     Length:0),
      (Name:'Y-Coordinate';      Style:esEdit;      Mask:emNumber;     Length:0),
@@ -795,7 +799,9 @@ var
      (Name:'Consumption Pattern';     Style:esEdit; Mask:emNoSpace;   Length:0),
      (Name:'Leakage';     Style:esHeading),
      (Name:'Leakage Coefficient A';    Style:esEdit;   Mask:emPosNumber;  Length:0),
-     (Name:'Leakage Exponent B';    Style:esEdit;   Mask:emPosNumber;  Length:0));
+     (Name:'Leakage Exponent B';    Style:esEdit;   Mask:emPosNumber;  Length:0),
+     (Name:'Float Valve';     Style:esHeading),
+     (Name:'Tank Float Valve Height';    Style:esEdit;   Mask:emPosNumber;  Length:0));
 
   OutfallProps: array[0..16] of TPropRecord =
     ((Name:'Name';              Style:esEdit;      Mask:emNoSpace;   Length:0),
@@ -1021,7 +1027,7 @@ var
      'Optional monthly pattern that adjusts depression storage',
      'Optional monthly pattern that adjusts infiltration rate');
 
-  JunctionHint: array[0..27] of String =
+  JunctionHint: array[0..29] of String =
     ('User-assigned name of junction',
      'X coordinate of junction on study area map',
      'Y coordinate of junction on study area map',
@@ -1050,7 +1056,10 @@ var
      'Name of consumption pattern curve (must be defined as a Time Series)',
      '',
      'Leakage is modelled as A * Q ^ B. The coefficient A is entered here',
-     'Leakage is modelled as A * Q ^ B. The exponent B is entered here');
+     'Leakage is modelled as A * Q ^ B. The exponent B is entered here',
+     '',
+     'Height of water in the storage tank at which withdrawal starts throttling ' +
+     '(mimicking the action of a float valve); must be less than the tank height');
 
   OutfallHint: array[0..16] of String =
     ('User-assigned name of outfall',

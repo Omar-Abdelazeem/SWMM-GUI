@@ -494,7 +494,11 @@ begin
   DrawNodes;
   DrawGages;
   DrawLabels;
-  DrawIntermitStorOverlay;
+  // Note: the intermittent-supply storage tank, outfalls and outlets are
+  // now real project objects (see UIntermitDisplay.SyncIntermitObjects)
+  // drawn above by DrawNodes/DrawLinks with their actual map coordinates
+  // and simulation results, so the old schematic overlay is no longer
+  // invoked. DrawIntermitStorOverlay is kept below for reference.
   LastColorIndex := -999;
 end;
 
@@ -541,7 +545,15 @@ begin
   Canvas.Pen.Width := Options.LinkSize;
   if Options.ShowLinks then for I := CONDUIT to OUTLET do
   begin
-    for J := 0 to Project.Lists[I].Count - 1 do DrawObject(I, J);
+    for J := 0 to Project.Lists[I].Count - 1 do
+    begin
+      // Hide the auto-generated intermittent-supply outlets when the
+      // user has turned off the View|Intermittent Nodes display option.
+      if (not Uglobals.ShowIntermitStorNodes) and
+         UIntermitDisplay.IsIntermitGeneratedID(Project.Lists[I].Strings[J])
+      then Continue;
+      DrawObject(I, J);
+    end;
   end;
   Canvas.Pen.Width := 1;
   SetBkMode(Canvas.Handle, OPAQUE);
@@ -559,7 +571,15 @@ begin
   LastColorIndex := -999;
   if Options.ShowNodes then for I := JUNCTION to STORAGE do
   begin
-    for J := 0 to Project.Lists[I].Count - 1 do DrawObject(I, J);
+    for J := 0 to Project.Lists[I].Count - 1 do
+    begin
+      // Hide the auto-generated intermittent-supply storage tank/outfalls
+      // when the user has turned off the View|Intermittent Nodes option.
+      if (not Uglobals.ShowIntermitStorNodes) and
+         UIntermitDisplay.IsIntermitGeneratedID(Project.Lists[I].Strings[J])
+      then Continue;
+      DrawObject(I, J);
+    end;
   end;
   SetBkMode(Canvas.Handle, OPAQUE);
 end;
@@ -888,7 +908,7 @@ begin
     LOFPt  := Point(JuncPt.X,               JuncPt.Y - BRANCH_PX); // leakage outfall (up)
 
     // ======================================================
-    // PASS 1 — draw links (under symbols)
+    // PASS 1 ï¿½ draw links (under symbols)
     // ======================================================
     Canvas.Pen.Color := OVERLAY_COLOR;
 
@@ -917,7 +937,7 @@ begin
     Canvas.LineTo(LOFPt.X,  LOFPt.Y);
 
     // ======================================================
-    // PASS 2 — draw virtual node symbols + labels
+    // PASS 2 ï¿½ draw virtual node symbols + labels
     // ======================================================
 
     // --- Withdrawal outlet (valve/outlet symbol) ---

@@ -588,7 +588,7 @@ uses
   Fsimul, Dsummary, Dabout, Dcalib1, Dcombine, Ddefault, Dgrpdel, Dprefers,
   Dproject, Dreport, Dstats, Dgrouped, Dfind, Dquery, Dmapexp, Dbackdrp,
   Dbackdim, Dtools1, Ubrowser, Uinifile, Umap, Uimport, Uexport, Uoutput,
-  Utools, Uupdate, Dreporting, Dproselect, Dtimeplot;
+  Utools, Uupdate, Dreporting, Dproselect, Dtimeplot, UIntermitDisplay;
 
 //============================================================================
 //            Form Creation, Resizing, & Closing Handlers
@@ -1525,6 +1525,11 @@ procedure TMainForm.MnuViewIntermitNodesClick(Sender: TObject);
 begin
   Uglobals.ShowIntermitStorNodes := not Uglobals.ShowIntermitStorNodes;
   MnuViewIntermitNodes.Checked := Uglobals.ShowIntermitStorNodes;
+
+  // Refresh the synthetic storage/outfall/outlet objects so they reflect
+  // the latest junction properties and map positions before being shown.
+  if Uglobals.ShowIntermitStorNodes then
+    UIntermitDisplay.SyncIntermitObjects;
 
   // Trigger a map repaint
   if Assigned(MapForm) then
@@ -2787,6 +2792,11 @@ begin
 
   // Exit if unsuccessful
   if (Uglobals.InputFileType = iftNone) then Exit;
+
+  // Rebuild the in-memory storage/outfall/outlet network for any
+  // intermittent demand junctions so the map and results reflect them
+  // without requiring a run first.
+  UIntermitDisplay.SyncIntermitObjects;
 
   // Check that any backdrop file named in the input file actually exists
   FindBackdropFile;

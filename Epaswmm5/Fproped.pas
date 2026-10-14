@@ -460,6 +460,8 @@ begin
     // Leakage section
     JunctionProps[JUNCTION_LEAKAGE_COEFFICIENT_INDEX].Style := esEdit;
     JunctionProps[JUNCTION_LEAKAGE_EXPONENT_INDEX].Style := esEdit;
+
+    JunctionProps[JUNCTION_INTERMIT_FLOAT_VALVE_HT_INDEX].Style := esEdit;
   end
   else
   begin
@@ -477,6 +479,8 @@ begin
 
     JunctionProps[JUNCTION_LEAKAGE_COEFFICIENT_INDEX].Style := esReadOnly;
     JunctionProps[JUNCTION_LEAKAGE_EXPONENT_INDEX].Style := esReadOnly;
+
+    JunctionProps[JUNCTION_INTERMIT_FLOAT_VALVE_HT_INDEX].Style := esReadOnly;
   end;
 
   Editor.Refresh;

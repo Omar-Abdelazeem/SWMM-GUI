@@ -2950,6 +2950,14 @@ begin
   aNode.Data[JUNCTION_CONSUMPTION_PATTERN]  := TokList[9];
   aNode.Data[JUNCTION_LEAKAGE_COEFFICIENT_INDEX]  := TokList[10];
   aNode.Data[JUNCTION_LEAKAGE_EXPONENT_INDEX]  := TokList[11];
+
+  // Float valve height is an optional trailing field, added after the
+  // original release of this section - default it for older project files
+  // that don't have it yet.
+  if Ntoks > 12
+  then aNode.Data[JUNCTION_INTERMIT_FLOAT_VALVE_HT_INDEX] := TokList[12]
+  else aNode.Data[JUNCTION_INTERMIT_FLOAT_VALVE_HT_INDEX] := '0.9';
+
   Result := 0;
 end;
 
